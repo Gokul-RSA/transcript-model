@@ -1,0 +1,78 @@
+import asyncio
+from typing import Dict, Set, Optional
+from fastapi import WebSocket
+from app.services.audio_buffer import AudioSessionBuffer
+from app.utils.logging import logger
+
+class ParticipantStream:
+    def __init__(self, session_id: str, role: str, websocket: WebSocket):
+        self.session_id = session_id
+        self.role = role
+        self.websocket = websocket
+        self.buffer = AudioSessionBuffer(session_id, role)
+        self.connected_at = asyncio.get_event_loop().time()
+
+class ConsultationSession:
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+        self.streams: Dict[str, ParticipantStream] = {}  # Key: role (doctor/patient/attender)
+
+    def register_stream(self, role: str, websocket: WebSocket) -> ParticipantStream:
+        """Registers a participant stream under the consultation session."""
+        if role in self.streams:
+            # Reconnect scenario: Clean up or overwrite the previous stream
+            logger.info(
+                "Participant reconnected; overwriting active stream",
+                extra={"session_id": self.session_id, "role": role}
+            )
+            # Reuses the existing buffer or resets it. We reuse the buffer to preserve state.
+            old_stream = self.streams[role]
+            stream = ParticipantStream(self.session_id, role, websocket)
+            # Carry over the buffer to avoid losing buffered data on reconnect
+            stream.buffer = old_stream.buffer
+            self.streams[role] = stream
+        else:
+            stream = ParticipantStream(self.session_id, role, websocket)
+            self.streams[role] = stream
+            
+        return stream
+
+    def remove_stream(self, role: str) -> None:
+        """Removes a stream from the session."""
+        if role in self.streams:
+            del self.streams[role]
+
+    def is_empty(self) -> bool:
+        """Returns True if no participants are streaming."""
+        return len(self.streams) == 0
+
+class SessionManager:
+    def __init__(self):
+        self._sessions: Dict[str, ConsultationSession] = {}
+        self._lock = asyncio.Lock()
+
+    async def get_or_create_session(self, session_id: str) -> ConsultationSession:
+        async with self._lock:
+            if session_id not in self._sessions:
+                logger.info("Created new consultation session", extra={"session_id": session_id})
+                self._sessions[session_id] = ConsultationSession(session_id)
+            return self._sessions[session_id]
+
+    async def unregister_stream(self, session_id: str, role: str) -> None:
+        async with self._lock:
+            if session_id in self._sessions:
+                session = self._sessions[session_id]
+                session.remove_stream(role)
+                logger.info("Unregistered participant stream", extra={"session_id": session_id, "role": role})
+                
+                if session.is_empty():
+                    del self._sessions[session_id]
+                    logger.info("Consultation session closed (no active streams)", extra={"session_id": session_id})
+
+    def get_session(self, session_id: str) -> Optional[ConsultationSession]:
+        return self._sessions.get(session_id)
+
+    def list_active_sessions(self) -> Set[str]:
+        return set(self._sessions.keys())
+
+session_manager = SessionManager()
