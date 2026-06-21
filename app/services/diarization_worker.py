@@ -424,7 +424,7 @@ class DiarizationWorkerManager:
             logger.info("DiarizationWorker: Initializing Pyannote Pipeline...")
             self._pipeline = Pipeline.from_pretrained(
                 "pyannote/speaker-diarization-3.1",
-                use_auth_token=settings.HUGGINGFACE_TOKEN
+                token=settings.HUGGINGFACE_TOKEN
             )
             if torch.cuda.is_available():
                 self._pipeline.to(torch.device("cuda"))
