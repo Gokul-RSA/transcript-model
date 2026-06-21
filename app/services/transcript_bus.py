@@ -32,6 +32,8 @@ class TranscriptEventBus:
         # Sliding buffer mapping session_id -> deque of recent events (caches last N events)
         self._buffers: Dict[str, deque] = {}
         self._max_buffer_size = settings.TRANSCRIPT_BUFFER_SIZE
+        # Set of seen event keys to prevent duplicates: session_id -> set of (role, sequence_number, transcript, is_final)
+        self._seen_events: Dict[str, set] = {}
         # Lock to ensure thread safety across concurrent FastAPI/uvicorn requests
         self._lock = RLock()
 
@@ -50,8 +52,26 @@ class TranscriptEventBus:
         Thread-safely caches the incoming transcript event in the session's sliding buffer,
         and broadcasts it to all registered subscribers.
         """
+        # Skip publishing empty final transcripts (silence)
+        if event.is_final and (not event.transcript or event.transcript.strip() == ""):
+            return
+
         with self._lock:
             session_id = event.session_id
+            event_key = (event.role, event.sequence_number, event.transcript, event.is_final)
+
+            
+            if session_id not in self._seen_events:
+                self._seen_events[session_id] = set()
+                
+            if event_key in self._seen_events[session_id]:
+                logger.debug(
+                    "Skipping duplicate transcript event",
+                    extra={"session_id": session_id, "role": event.role, "seq": event.sequence_number, "final": event.is_final}
+                )
+                return
+                
+            self._seen_events[session_id].add(event_key)
             
             # Cache event in session buffer
             if session_id not in self._buffers:
@@ -84,6 +104,9 @@ class TranscriptEventBus:
         with self._lock:
             if session_id in self._buffers:
                 del self._buffers[session_id]
+            if session_id in self._seen_events:
+                del self._seen_events[session_id]
+
 
 # Singleton Event Bus
 transcript_bus = TranscriptEventBus()

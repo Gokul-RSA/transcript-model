@@ -24,3 +24,8 @@ class BaseSTTProvider(ABC):
     async def disconnect(self) -> None:
         """Cleans up resources and closes the connection."""
         pass
+
+    async def send_commit(self) -> None:
+        """Sends a commit signal to finalize transcription. Optional for providers."""
+        pass
+

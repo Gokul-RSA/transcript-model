@@ -30,6 +30,13 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
             try:
                 res = await asyncio.wait_for(provider.receive(), timeout=10.0)
             except TimeoutError:
+                # If commit was requested, a timeout means we should exit instead of reconnecting
+                if getattr(provider, "commit_requested", False):
+                    logger.info(
+                        "STTWorker: Timeout after commit request. Exiting receive loop.",
+                        extra={"session_id": session_id, "role": role}
+                    )
+                    break
                 # If 10 seconds pass with no message, assume connection hung and reconnect
                 logger.warning(
                     "STTWorker: Scribe receive timeout occurred, reconnecting",
@@ -57,10 +64,17 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
             if res.get("type") == "ignored":
                 continue
                 
+            from app.services.session import session_manager
+            session = session_manager.get_session(session_id)
+            if session:
+                seq = session.get_and_increment_transcript_seq(role)
+            else:
+                seq = provider.get_and_increment_event_seq()
+                
             event = TranscriptEvent(
                 session_id=session_id,
                 role=role,
-                sequence_number=provider.get_and_increment_event_seq(),
+                sequence_number=seq,
                 timestamp=time.time(),
                 transcript=res.get("text", ""),
                 is_partial=(res.get("type") == "partial"),
@@ -68,6 +82,7 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
                 confidence=res.get("confidence"),
                 provider="scribe_v2"
             )
+
             
             logger.info(
                 f"STTWorker: Broadcasting transcript event ({'FINAL' if event.is_final else 'PARTIAL'})",
@@ -79,6 +94,15 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
                 }
             )
             transcript_bus.publish(event)
+            
+            # If commit was requested and we got the final committed transcript, we exit the loop
+            if getattr(provider, "commit_requested", False) and event.is_final:
+                logger.info(
+                    "STTWorker: Received final committed transcript. Exiting receive loop.",
+                    extra={"session_id": session_id, "role": role}
+                )
+                break
+
             
     except asyncio.CancelledError:
         logger.info("STTWorker: Scribe receive loop cancelled", extra={"session_id": session_id, "role": role})
@@ -118,6 +142,9 @@ async def stt_worker_task(stream, provider) -> None:
         while True:
             # Wait for next aggregated audio chunk (carrying metadata)
             chunk = await queue.get()
+            if chunk is None:
+                queue.task_done()
+                break
             
             try:
                 # Pipe raw PCM bytes to Scribe
@@ -137,6 +164,18 @@ async def stt_worker_task(stream, provider) -> None:
                 await asyncio.sleep(0.5)
             finally:
                 queue.task_done()
+
+        # Draining finished! Send commit to provider.
+        await provider.send_commit()
+
+        # Wait for the receive_task to finish naturally with a 5.0 second safety timeout
+        try:
+            await asyncio.wait_for(receive_task, timeout=5.0)
+        except (TimeoutError, asyncio.TimeoutError):
+            logger.warning(
+                "STTWorker: Timeout waiting for receive task to complete naturally",
+                extra={"session_id": session_id, "role": role}
+            )
                 
     except asyncio.CancelledError:
         logger.info("STTWorker: Ingestion worker task cancelled", extra={"session_id": session_id, "role": role})
@@ -147,11 +186,13 @@ async def stt_worker_task(stream, provider) -> None:
             extra={"session_id": session_id, "role": role}
         )
     finally:
-        # Stop receive loop
-        receive_task.cancel()
-        try:
-            await receive_task
-        except asyncio.CancelledError:
-            pass
+        # Stop receive loop if it's not already finished
+        if not receive_task.done():
+            receive_task.cancel()
+            try:
+                await receive_task
+            except asyncio.CancelledError:
+                pass
         # Clean up provider connection
         await provider.disconnect()
+

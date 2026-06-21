@@ -19,10 +19,17 @@ class ScribeV2Provider(BaseSTTProvider):
         self._websocket: Optional[websockets.WebSocketClientProtocol] = None
         self._event_seq_counter = 0
         self._is_connected = False
+        self._commit_requested = False
         
         # Mock mode attributes
         self._mock_buffer_bytes = 0
         self._mock_chunk_count = 0
+
+    @property
+    def commit_requested(self) -> bool:
+        """Returns True if a commit signal has been requested for this session."""
+        return self._commit_requested
+
 
     def get_and_increment_event_seq(self) -> int:
         """Returns and increments the sequential index for transcript events."""
@@ -51,10 +58,17 @@ class ScribeV2Provider(BaseSTTProvider):
                     f"Scribe V2: Attempting connection to ElevenLabs (Attempt {attempt}/{max_retries})..."
                 )
                 headers = {"xi-api-key": self.api_key}
-                self._websocket = await websockets.connect(
-                    self.ws_url,
-                    extra_headers=headers
-                )
+                try:
+                    self._websocket = await websockets.connect(
+                        self.ws_url,
+                        additional_headers=headers
+                    )
+                except TypeError:
+                    self._websocket = await websockets.connect(
+                        self.ws_url,
+                        extra_headers=headers
+                    )
+
                 
                 # Wait for session_started confirmation handshake
                 handshake_msg = await self._websocket.recv()
@@ -113,17 +127,36 @@ class ScribeV2Provider(BaseSTTProvider):
             self._is_connected = False
             raise e
 
+    async def send_commit(self) -> None:
+        """Sends a commit message to finalize the transcription."""
+        self._commit_requested = True
+        if not self._is_connected:
+            return
+        if self.mode == "development" and not self.api_key:
+            return
+            
+        try:
+            payload = {
+                "message_type": "input_audio_chunk",
+                "audio_base_64": "",
+                "commit": True
+            }
+            await self._websocket.send(json.dumps(payload))
+            logger.info("Scribe V2: Sent commit message to ElevenLabs API.")
+        except Exception as e:
+            logger.error(f"Scribe V2: Commit failed ({str(e)})", exc_info=True)
+
     async def receive(self) -> dict:
         """Receives real-time transcriptions/metadata from the provider."""
         if self.mode == "development" and not self.api_key:
             # Simulated transcription delivery loop
             await asyncio.sleep(1.0)  # mimic response interval
             
-            if self._mock_chunk_count > 0:
+            if self._mock_chunk_count > 0 or self._commit_requested:
                 self._mock_chunk_count = 0
                 mock_text = f"Mock transcription text for chunk {self._event_seq_counter}"
-                # Alternate between partial and committed transcripts for realistic client updates
-                is_committed = (self._event_seq_counter % 2 == 1)
+                # If commit was requested, force is_committed = True
+                is_committed = self._commit_requested or (self._event_seq_counter % 2 == 1)
                 
                 return {
                     "type": "committed" if is_committed else "partial",

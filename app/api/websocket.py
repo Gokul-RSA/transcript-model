@@ -120,4 +120,14 @@ async def audio_streaming_endpoint(
                     extra={"session_id": session_id, "role": role, "error": str(e)}
                 )
             
+        # Send sentinel value (None) to signal end of stream
+        try:
+            stream.buffer.ready_chunks_queue.put_nowait(None)
+        except Exception as e:
+            logger.error(
+                "Failed to enqueue end-of-stream sentinel",
+                extra={"session_id": session_id, "role": role, "error": str(e)}
+            )
+            
         await session_manager.unregister_stream(session_id, role)
+

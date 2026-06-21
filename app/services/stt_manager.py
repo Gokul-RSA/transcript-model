@@ -82,13 +82,24 @@ class STTManager:
                     task = asyncio.create_task(stt_worker_task(stream, provider))
                     self._workers[key] = (task, provider)
 
-            # 3. Reconcile: Terminate workers for closed streams
+            # 3. Reconcile: Clean up finished workers, and handle active vs inactive
             registered_keys = list(self._workers.keys())
             for key in registered_keys:
-                if key not in active_streams:
+                task, provider = self._workers[key]
+                if task.done():
                     session_id, role = key
-                    logger.info("STTManager: Reconciled closed stream. Terminating worker.", extra={"session_id": session_id, "role": role})
-                    await self._stop_worker_by_key(key)
+                    logger.info("STTManager: Worker task completed. Cleaning up.", extra={"session_id": session_id, "role": role})
+                    try:
+                        await task  # propagate any exceptions
+                    except Exception as e:
+                        logger.error("STTManager: Worker task failed", exc_info=True, extra={"session_id": session_id, "role": role})
+                    del self._workers[key]
+
+            # 4. Clean up any empty sessions that have no running workers anymore
+            active_session_ids_with_workers = {k[0] for k in self._workers.keys()}
+            await session_manager.clean_empty_sessions(active_session_ids_with_workers)
+
+
 
     async def _orchestrator_loop(self) -> None:
         """Infinite loop polling for reconciliation changes."""

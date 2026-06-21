@@ -16,6 +16,18 @@ class ConsultationSession:
     def __init__(self, session_id: str):
         self.session_id = session_id
         self.streams: Dict[str, ParticipantStream] = {}  # Key: role (doctor/patient/attender)
+        self.transcript_seq_counters: Dict[str, int] = {
+            "doctor": 0,
+            "patient": 0,
+            "attender": 0
+        }
+
+    def get_and_increment_transcript_seq(self, role: str) -> int:
+        """Atomically returns and increments the transcript sequence counter for a role."""
+        val = self.transcript_seq_counters.get(role, 0)
+        self.transcript_seq_counters[role] = val + 1
+        return val
+
 
     def register_stream(self, role: str, websocket: WebSocket) -> ParticipantStream:
         """Registers a participant stream under the consultation session."""
@@ -64,10 +76,19 @@ class SessionManager:
                 session = self._sessions[session_id]
                 session.remove_stream(role)
                 logger.info("Unregistered participant stream", extra={"session_id": session_id, "role": role})
-                
-                if session.is_empty():
+
+    async def clean_empty_sessions(self, active_session_ids_with_workers: Set[str]) -> None:
+        """Deletes sessions that have no active streams and no running worker tasks."""
+        async with self._lock:
+            for session_id in list(self._sessions.keys()):
+                session = self._sessions[session_id]
+                if session.is_empty() and session_id not in active_session_ids_with_workers:
                     del self._sessions[session_id]
-                    logger.info("Consultation session closed (no active streams)", extra={"session_id": session_id})
+                    logger.info(
+                        "Consultation session closed (no active streams or workers)",
+                        extra={"session_id": session_id}
+                    )
+
 
     def get_session(self, session_id: str) -> Optional[ConsultationSession]:
         return self._sessions.get(session_id)
