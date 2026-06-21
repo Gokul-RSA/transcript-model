@@ -82,7 +82,10 @@ def fetch_transcripts():
             transcripts = json.loads(response.read().decode())
             print(f"Fetched {len(transcripts)} transcript events successfully:")
             for event in transcripts:
-                print(f" - [{event['role'].upper()}] [final: {event['is_final']}]: '{event['transcript']}'")
+                role = event['role'].upper()
+                speaker = event.get('speaker_id', 'UNKNOWN')
+                print(f" - [{role} / {speaker}] [final: {event['is_final']}]: '{event['transcript']}'")
+
     except Exception as e:
         print(f"Failed to retrieve transcripts: {e}", file=sys.stderr)
 

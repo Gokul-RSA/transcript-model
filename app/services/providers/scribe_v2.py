@@ -15,7 +15,7 @@ class ScribeV2Provider(BaseSTTProvider):
     def __init__(self, api_key: str, mode: str = "development"):
         self.api_key = api_key
         self.mode = mode
-        self.ws_url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime"
+        self.ws_url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&include_timestamps=true"
         self._websocket: Optional[websockets.WebSocketClientProtocol] = None
         self._event_seq_counter = 0
         self._is_connected = False
@@ -158,10 +158,24 @@ class ScribeV2Provider(BaseSTTProvider):
                 # If commit was requested, force is_committed = True
                 is_committed = self._commit_requested or (self._event_seq_counter % 2 == 1)
                 
+                words_list = []
+                if is_committed:
+                    words = mock_text.split()
+                    # Each chunk is 1 second, simulate words within that offset
+                    start_offset = float(self._event_seq_counter) * 1.0
+                    word_duration = 1.0 / max(1, len(words))
+                    for i, w in enumerate(words):
+                        words_list.append({
+                            "text": w,
+                            "start": start_offset + (i * word_duration),
+                            "end": start_offset + ((i + 1) * word_duration)
+                        })
+                
                 return {
                     "type": "committed" if is_committed else "partial",
                     "text": mock_text,
-                    "confidence": 0.95
+                    "confidence": 0.95,
+                    "words": words_list
                 }
             return {"type": "ignored"}
 
@@ -181,7 +195,8 @@ class ScribeV2Provider(BaseSTTProvider):
                 return {
                     "type": "committed",
                     "text": data.get("text", ""),
-                    "confidence": 0.97
+                    "confidence": 0.97,
+                    "words": data.get("words", [])
                 }
             return {"type": "ignored"}
             

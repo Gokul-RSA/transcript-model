@@ -123,6 +123,10 @@ async def audio_streaming_endpoint(
         # Send sentinel value (None) to signal end of stream
         try:
             stream.buffer.ready_chunks_queue.put_nowait(None)
+            
+            # Signal end of stream to diarization worker
+            from app.services.audio_tap import audio_tap
+            audio_tap.feed_sentinel(session_id)
         except Exception as e:
             logger.error(
                 "Failed to enqueue end-of-stream sentinel",

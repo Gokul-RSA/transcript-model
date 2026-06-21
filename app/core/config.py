@@ -82,12 +82,21 @@ class Settings(BaseSettings):
     ELEVENLABS_API_KEY: str = ""
     STT_PROVIDER_MODE: str = "development"  # choices: "development", "production"
 
+    # Pyannote / Diarization Configurations
+    HUGGINGFACE_TOKEN: str = ""
+    DIARIZATION_MODE: str = "development"  # choices: "development", "production"
+
     @model_validator(mode="after")
     def validate_provider_mode(self) -> 'Settings':
         if self.STT_PROVIDER_MODE == "production":
             if not self.ELEVENLABS_API_KEY or self.ELEVENLABS_API_KEY.strip() == "":
                 raise ValueError(
                     "ELEVENLABS_API_KEY must be configured when STT_PROVIDER_MODE is set to 'production'."
+                )
+        if self.DIARIZATION_MODE == "production":
+            if not self.HUGGINGFACE_TOKEN or self.HUGGINGFACE_TOKEN.strip() == "":
+                raise ValueError(
+                    "HUGGINGFACE_TOKEN must be configured when DIARIZATION_MODE is set to 'production'."
                 )
         return self
 

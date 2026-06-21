@@ -88,6 +88,18 @@ class SessionManager:
                         "Consultation session closed (no active streams or workers)",
                         extra={"session_id": session_id}
                     )
+                    # Cleanup parallel diarization pipeline resources
+                    try:
+                        from app.services.diarization_worker import diarization_worker_manager
+                        from app.services.speaker_timeline import speaker_timeline_manager
+                        diarization_worker_manager.clear_session(session_id)
+                        speaker_timeline_manager.clear_timeline(session_id)
+                    except Exception as e:
+                        logger.error(
+                            "SessionManager: Error cleaning up parallel diarization resources",
+                            exc_info=True,
+                            extra={"session_id": session_id, "error": str(e)}
+                        )
 
 
     def get_session(self, session_id: str) -> Optional[ConsultationSession]:

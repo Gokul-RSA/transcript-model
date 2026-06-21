@@ -64,39 +64,24 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
             if res.get("type") == "ignored":
                 continue
                 
-            from app.services.session import session_manager
-            session = session_manager.get_session(session_id)
-            if session:
-                seq = session.get_and_increment_transcript_seq(role)
-            else:
-                seq = provider.get_and_increment_event_seq()
-                
-            event = TranscriptEvent(
-                session_id=session_id,
-                role=role,
-                sequence_number=seq,
-                timestamp=time.time(),
-                transcript=res.get("text", ""),
-                is_partial=(res.get("type") == "partial"),
-                is_final=(res.get("type") == "committed"),
-                confidence=res.get("confidence"),
-                provider="scribe_v2"
-            )
-
-            
-            logger.info(
-                f"STTWorker: Broadcasting transcript event ({'FINAL' if event.is_final else 'PARTIAL'})",
-                extra={
-                    "session_id": session_id,
-                    "role": role,
-                    "seq": event.sequence_number,
-                    "text": event.transcript
-                }
-            )
-            transcript_bus.publish(event)
+            from app.services.speaker_alignment import speaker_alignment_service
+            events = speaker_alignment_service.align_and_segment(session_id, role, res, provider)
+            for event in events:
+                logger.info(
+                    f"STTWorker: Broadcasting transcript event ({'FINAL' if event.is_final else 'PARTIAL'})",
+                    extra={
+                        "session_id": session_id,
+                        "role": role,
+                        "seq": event.sequence_number,
+                        "text": event.transcript,
+                        "speaker": event.speaker_id
+                    }
+                )
+                transcript_bus.publish(event)
             
             # If commit was requested and we got the final committed transcript, we exit the loop
-            if getattr(provider, "commit_requested", False) and event.is_final:
+            is_commit_done = any(event.is_final for event in events)
+            if getattr(provider, "commit_requested", False) and is_commit_done:
                 logger.info(
                     "STTWorker: Received final committed transcript. Exiting receive loop.",
                     extra={"session_id": session_id, "role": role}

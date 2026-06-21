@@ -94,7 +94,10 @@ async def stream_audio(file_path: str, role: str):
             transcripts = json.loads(response.read().decode())
             print(f"Fetched {len(transcripts)} transcript events successfully:", flush=True)
             for event in transcripts:
-                print(f" - [{event['role'].upper()}] [final: {event['is_final']}]: '{event['transcript']}'", flush=True)
+                role = event['role'].upper()
+                speaker = event.get('speaker_id', 'UNKNOWN')
+                print(f" - [{role} / {speaker}] [final: {event['is_final']}]: '{event['transcript']}'", flush=True)
+
     except Exception as e:
         print(f"Failed to retrieve transcripts: {e}", file=sys.stderr, flush=True)
 

@@ -167,6 +167,10 @@ class AudioSessionBuffer:
             else:
                 await self.ready_chunks_queue.put(chunk)
             
+            # Feed audio tap in parallel for speaker diarization
+            from app.services.audio_tap import audio_tap
+            audio_tap.feed_audio(self.session_id, chunk)
+            
             logger.debug(
                 "Released audio chunk for transcription",
                 extra={
@@ -200,5 +204,10 @@ class AudioSessionBuffer:
                 time.time()
             )
             self.chunk_seq_counter += 1
+            
+            # Feed audio tap in parallel for speaker diarization
+            from app.services.audio_tap import audio_tap
+            audio_tap.feed_audio(self.session_id, chunk)
+            
             return chunk
         return None

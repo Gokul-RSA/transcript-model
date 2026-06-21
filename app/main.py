@@ -35,7 +35,8 @@ async def startup_event():
             "sample_rate_hz": settings.AUDIO_SAMPLE_RATE,
             "min_frame_bytes": settings.min_frame_bytes,
             "max_frame_bytes": settings.max_frame_bytes,
-            "buffer_chunk_bytes": settings.buffer_chunk_bytes
+            "buffer_chunk_bytes": settings.buffer_chunk_bytes,
+            "diarization_mode": settings.DIARIZATION_MODE
         }
     )
     # Start background STT worker reconciliation orchestrator loop
