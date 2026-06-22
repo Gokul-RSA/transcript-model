@@ -1,6 +1,67 @@
+# =====================================================================
+# INSTALLATION INSTRUCTIONS (via Terminal)
+# =====================================================================
+# 
+# Step 1: Create a virtual environment:
+#    python -m venv .venv
+#
+# Step 2: Activate the virtual environment:
+#    - Windows (PowerShell):  .venv\Scripts\Activate.ps1
+#    - Windows (Cmd Prompt):  .venv\Scripts\activate.bat
+#    - macOS / Linux:         source .venv/bin/activate
+#
+# Step 3: Upgrade pip to the latest version:
+#    python -m pip install --upgrade pip
+#
+# Step 4: Install all required packages:
+#    pip install -r requirements.txt
+#
+# Step 5: (Windows Only - Troubleshooting) If PyAudio installation fails:
+#    pip install pipwin
+#    pipwin install pyaudio
+#
+# =====================================================================
+# HOW TO RUN LIVE TRANSCRIPTION (Step-by-Step)
+# =====================================================================
+#
+# Step 1: Create local environment configuration:
+#    - Copy the configuration template:
+#      On Windows:      copy .env.example .env
+#      On macOS/Linux:  cp .env.example .env
+#    - (Optional) Open the new .env file and fill in ElevenLabs and 
+#      HuggingFace tokens to test live cloud APIs instead of local mocks.
+#
+# Step 2: Start the FastAPI Backend Server:
+#    python -m uvicorn app.main:app --port 8000
+#
+# Step 3: Stream Live Audio (Open a new terminal window, activate venv, then):
+#
+#    Option A: Stream Live Microphone Input:
+#       python stream_mic.py doctor
+#
+#    Option B: Stream a Pre-recorded WAV File:
+#       python stream_audio.py speech-sample.wav doctor
+#
+# Step 4: Fetch/Verify Captured Transcripts:
+#    - The client terminal will output the transcripts once it finishes streaming.
+#    - You can also query the session's active transcript cache bus at:
+#      http://127.0.0.1:8000/v1/transcripts/consultation-xyz-123
+#
+# =====================================================================
+
+# Core Framework & Web Server
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 pydantic>=2.6.0
 pydantic-settings>=2.2.0
 websockets>=12.0
 PyJWT>=2.8.0
+python-dotenv>=1.0.0
+
+# Audio Processing & Live Streaming
+PyAudio>=0.2.14
+
+# Speaker Diarization (Pyannote & PyTorch)
+torch>=2.1.0
+torchaudio>=2.1.0
+pyannote.audio>=3.1.1
