@@ -60,7 +60,6 @@ class TranscriptEventBus:
             session_id = event.session_id
             event_key = (event.role, event.sequence_number, event.transcript, event.is_final)
 
-            
             if session_id not in self._seen_events:
                 self._seen_events[session_id] = set()
                 
@@ -76,6 +75,32 @@ class TranscriptEventBus:
             # Cache event in session buffer
             if session_id not in self._buffers:
                 self._buffers[session_id] = deque(maxlen=self._max_buffer_size)
+                
+            # Overlap replacement logic: if this is a final event, remove any older overlapping events
+            if event.is_final and event.start_time is not None and event.end_time is not None:
+                overlapping_events = []
+                for old_event in self._buffers[session_id]:
+                    if old_event.start_time is not None and old_event.end_time is not None:
+                        overlap_start = max(old_event.start_time, event.start_time)
+                        overlap_end = min(old_event.end_time, event.end_time)
+                        if (overlap_end - overlap_start) > 0.1:
+                            overlapping_events.append(old_event)
+                for old_event in overlapping_events:
+                    try:
+                        self._buffers[session_id].remove(old_event)
+                        logger.info(
+                            "Removed overlapping transcript event from buffer",
+                            extra={
+                                "session_id": session_id,
+                                "removed_seq": old_event.sequence_number,
+                                "removed_text": old_event.transcript,
+                                "new_seq": event.sequence_number,
+                                "new_text": event.transcript
+                            }
+                        )
+                    except ValueError:
+                        pass  # Already removed
+
             self._buffers[session_id].append(event)
             
             # Broadcast to all registered callback subscribers
@@ -93,10 +118,13 @@ class TranscriptEventBus:
                     )
 
     def get_recent_events(self, session_id: str) -> List[TranscriptEvent]:
-        """Thread-safely retrieves all currently buffered transcript events for a given session."""
+        """Thread-safely retrieves all currently buffered transcript events for a given session, sorted chronologically."""
         with self._lock:
             if session_id in self._buffers:
-                return list(self._buffers[session_id])
+                events_list = list(self._buffers[session_id])
+                # Sort chronologically by start_time to guarantee perfect dialogue sequence
+                events_list.sort(key=lambda x: x.start_time if x.start_time is not None else 0.0)
+                return events_list
             return []
 
     def clear_buffer(self, session_id: str) -> None:

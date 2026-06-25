@@ -85,6 +85,12 @@ class Settings(BaseSettings):
     # Pyannote / Diarization Configurations
     HUGGINGFACE_TOKEN: str = ""
     DIARIZATION_MODE: str = "development"  # choices: "development", "production"
+    # Rolling audio buffer kept per session (seconds)
+    DIARIZATION_BUFFER_SECONDS: int = 7
+    # Window fed into Pyannote on each inference cycle (seconds, must be <= DIARIZATION_BUFFER_SECONDS)
+    DIARIZATION_WINDOW_SECONDS: int = 5
+    # How often the inference cycle fires (seconds)
+    DIARIZATION_INTERVAL_SECONDS: int = 2
 
     @model_validator(mode="after")
     def validate_provider_mode(self) -> 'Settings':

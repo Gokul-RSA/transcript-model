@@ -6,130 +6,218 @@
 # =====================================================================
 
 import asyncio
-import io
-import wave
 import time
 import threading
 import collections
 from typing import Dict, List, Optional
+import numpy as np
 from app.core.config import settings
 from app.utils.logging import logger
 from app.services.speaker_timeline import speaker_timeline_manager
 
-# Lazy imports for production dependencies
-torch = None
-Pipeline = None
+# ---------------------------------------------------------------------------
+# Lazy imports for heavy production dependencies (torch / pyannote.audio).
+# They are initialised once and shared across the entire process lifetime.
+# ---------------------------------------------------------------------------
+_torch = None
+_Pipeline = None
 
-def _lazy_init_pyannote():
-    global torch, Pipeline
-    if torch is None or Pipeline is None:
+
+def _lazy_init_pyannote() -> None:
+    """Import torch and pyannote.audio exactly once per process."""
+    global _torch, _Pipeline
+    if _torch is None or _Pipeline is None:
         try:
             import torch as t
             from pyannote.audio import Pipeline as P
-            torch = t
-            Pipeline = P
-        except ImportError as e:
-            logger.error("DiarizationWorker: Failed to import torch/pyannote.audio", exc_info=True)
+            _torch = t
+            _Pipeline = P
+        except ImportError as exc:
+            logger.error(
+                "DiarizationWorker: Failed to import torch/pyannote.audio",
+                exc_info=True,
+            )
             raise ImportError(
                 "Failed to import 'torch' or 'pyannote.audio'. "
                 "Ensure they are installed before using production diarization mode."
-            ) from e
+            ) from exc
 
-def pcm_to_wav_io(pcm_bytes: bytes, sample_rate: int = 16000) -> io.BytesIO:
-    wav_io = io.BytesIO()
-    with wave.open(wav_io, "wb") as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)  # 16-bit = 2 bytes
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(pcm_bytes)
-    wav_io.seek(0)
-    return wav_io
 
-def get_mock_speaker(timestamp: float) -> str:
+# ---------------------------------------------------------------------------
+# PCM → Tensor conversion (no temp files, no WAV headers)
+# ---------------------------------------------------------------------------
+
+def _pcm_bytes_to_tensor(pcm_bytes: bytes):
+    """
+    Converts raw PCM-16 mono bytes directly to a normalised float32 torch tensor
+    with peak amplitude normalization to boost low-volume/low-gain signals.
+
+    Returns a dict compatible with pyannote.audio Pipeline:
+        {"waveform": Tensor[1, samples], "sample_rate": int}
+    """
+    audio_np = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32)
+    audio_np /= 32768.0                          # Normalise int16 → [-1.0, 1.0]
+    
+    # Peak normalization: scale peak amplitude to 0.95 if it exceeds a minimum noise floor
+    max_amp = np.max(np.abs(audio_np)) if len(audio_np) > 0 else 0.0
+    if max_amp > 0.01:  # 0.01 threshold (~-40dB) to avoid amplifying pure silence/noise
+        audio_np = audio_np * (0.95 / max_amp)
+        
+    waveform = _torch.from_numpy(audio_np).unsqueeze(0)  # Shape: [1, samples]
+    return {"waveform": waveform, "sample_rate": settings.AUDIO_SAMPLE_RATE}
+
+
+# ---------------------------------------------------------------------------
+# Mock segments (development / offline mode only)
+# ---------------------------------------------------------------------------
+
+def _get_mock_speaker(timestamp: float) -> str:
     cycle = timestamp % 30.0
     if cycle < 5.0:
-        return "Speaker_0"
+        return "doctor"
     elif cycle < 12.0:
-        return "Speaker_1"
+        return "patient"
     elif cycle < 18.0:
-        return "Speaker_0"
+        return "doctor"
     elif cycle < 22.0:
-        return "Speaker_2"
+        return "attender"
     else:
-        return "Speaker_0"
+        return "doctor"
 
-def get_mock_segments(window_start: float, window_end: float) -> list:
+
+def _get_mock_segments(window_start: float, window_end: float) -> list:
     segments = []
     step = 0.1
     current_speaker = None
     segment_start = None
-    
+
     t = window_start
     while t < window_end + 0.05:
         current_t = min(t, window_end)
-        speaker = get_mock_speaker(current_t)
-        
+        speaker = _get_mock_speaker(current_t)
+
         if current_speaker is None:
             current_speaker = speaker
             segment_start = current_t
         elif speaker != current_speaker:
-            segments.append({
-                "start": segment_start,
-                "end": current_t,
-                "label": current_speaker
-            })
+            segments.append({"start": segment_start, "end": current_t, "label": current_speaker})
             current_speaker = speaker
             segment_start = current_t
-            
+
         t += step
-        
+
     if current_speaker is not None and segment_start < window_end:
-        segments.append({
-            "start": segment_start,
-            "end": window_end,
-            "label": current_speaker
-        })
+        segments.append({"start": segment_start, "end": window_end, "label": current_speaker})
+
     return segments
 
+
+# ---------------------------------------------------------------------------
+# Per-session state
+# ---------------------------------------------------------------------------
 
 class DiarizationSessionState:
     def __init__(self, session_id: str):
         self.session_id = session_id
-        # Double-ended queue storing chunks of audio bytes dynamically
-        self.chunks_deque = collections.deque()
-        self.total_bytes_in_chunks = 0
-        self.total_bytes_received = 0
+        # Sliding audio buffer — individual chunk bytes kept in insertion order.
+        # Older bytes are evicted in feed_audio() to respect DIARIZATION_BUFFER_SECONDS.
+        self.chunks_deque: collections.deque = collections.deque()
+        self.total_bytes_in_chunks: int = 0
+        self.total_bytes_received: int = 0
         self.lock = asyncio.Lock()
         self.task: Optional[asyncio.Task] = None
-        self.is_active = True
-        self.prev_window_start = 0.0
-        self.prev_window_end = 0.0
-        self.has_new_audio = False
+        self.is_active: bool = True
+        self.prev_window_start: float = 0.0
+        self.prev_window_end: float = 0.0
+        self.has_new_audio: bool = False
+        self.global_pass_completed = False
 
+
+# ---------------------------------------------------------------------------
+# Worker manager
+# ---------------------------------------------------------------------------
 
 class DiarizationWorkerManager:
     """
-    Manages active diarization sessions and handles Pyannote pipeline initialization.
-    
+    Manages active diarization sessions and owns the single shared Pyannote pipeline.
+
     Locking Hierarchy & Concurrency Model:
     1. Manager Lock (self._lock - threading.Lock):
-       - Purpose: Protects CPU-bound, synchronous state dict operations (fetching, clearing, or creating session states).
-       - Constraints: Never held across `await` points or nested within any other lock. Released immediately.
+       - Purpose: Protects CPU-bound, synchronous state-dict operations.
+       - Constraints: Never held across `await` points.  Released immediately.
     2. Session Lock (state.lock - asyncio.Lock):
-       - Purpose: Protects concurrent window processing for a specific session to prevent race conditions during sliding window analysis.
+       - Purpose: Prevents two concurrent inference cycles for the same session.
        - Constraints: Held across `asyncio.to_thread` calls during pipeline execution.
     """
+
     def __init__(self):
         self._states: Dict[str, DiarizationSessionState] = {}
         self._lock = threading.Lock()
-        self._pipeline = None
+        self._pipeline = None  # Loaded once; shared across all sessions
 
+    # ------------------------------------------------------------------
+    # Public startup helper
+    # ------------------------------------------------------------------
+
+    async def preload_pipeline(self) -> None:
+        """
+        Eagerly loads the Pyannote pipeline at server startup so the first
+        diarization window does not incur a cold-start penalty.
+
+        Must be awaited directly from the FastAPI `startup` event handler
+        (NOT wrapped in asyncio.to_thread) so that pyannote.audio's import-time
+        asyncio code runs inside an active event loop.
+
+        Raises:
+            ValueError: If CLINICAL_COPILOT_HUGGINGFACE_TOKEN is not set.
+            ImportError: If torch / pyannote.audio are not installed.
+        """
+        if not settings.HUGGINGFACE_TOKEN or not settings.HUGGINGFACE_TOKEN.strip():
+            raise ValueError(
+                "CLINICAL_COPILOT_HUGGINGFACE_TOKEN must be set when "
+                "DIARIZATION_MODE is 'production'."
+            )
+
+        # Phase 1: Import pyannote HERE (in the async context which has a running
+        # event loop). pyannote.audio's __init__ triggers asyncio code at import
+        # time, which crashes if run inside asyncio.to_thread (no event loop there).
+        _lazy_init_pyannote()
+
+        if self._pipeline is not None:
+            logger.info("DiarizationWorker: Pipeline already loaded, skipping preload.")
+            return
+
+        logger.info("DiarizationWorker: Loading Pyannote pipeline (this may take a moment)…")
+
+        # Phase 2: Model download / weight loading is purely blocking I/O + CPU.
+        # Offload to a thread so the event loop stays responsive during the download.
+        self._pipeline = await asyncio.to_thread(self._load_model_from_pretrained)
+
+        if _torch.cuda.is_available():
+            self._pipeline.to(_torch.device("cuda"))
+            logger.info("DiarizationWorker: Pipeline loaded on CUDA.")
+        else:
+            logger.info("DiarizationWorker: Pipeline loaded on CPU (CUDA not available).")
+
+    def _load_model_from_pretrained(self):
+        """Blocking helper — runs in a thread pool via asyncio.to_thread."""
+        return _Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1",
+            token=settings.HUGGINGFACE_TOKEN,
+        )
+
+    # ------------------------------------------------------------------
+    # Audio ingestion
+    # ------------------------------------------------------------------
 
     def feed_audio(self, session_id: str, chunk: bytes) -> None:
-        """Appends audio bytes and triggers/wakes the background processing loop."""
+        """Appends an audio chunk and (re-)starts the background processing loop."""
         with self._lock:
             if session_id not in self._states:
-                logger.info("DiarizationWorker: Creating new session state", extra={"session_id": session_id})
+                logger.info(
+                    "DiarizationWorker: Creating new session state",
+                    extra={"session_id": session_id},
+                )
                 self._states[session_id] = DiarizationSessionState(session_id)
             state = self._states[session_id]
 
@@ -137,56 +225,75 @@ class DiarizationWorkerManager:
         state.total_bytes_in_chunks += len(chunk)
         state.total_bytes_received += len(chunk)
         state.has_new_audio = True
-        
-        # Bounded sliding buffer: discard chunks older than 7 seconds (constant memory O(1))
-        bytes_per_second = settings.AUDIO_SAMPLE_RATE * settings.AUDIO_CHANNELS * settings.bytes_per_sample
-        max_bytes = 7 * bytes_per_second
-        while state.total_bytes_in_chunks > max_bytes:
-            oldest = state.chunks_deque.popleft()
-            state.total_bytes_in_chunks -= len(oldest)
 
-        # Start background loop if not already running
+        # Spawn background loop only if not already running
         if state.task is None or state.task.done():
             state.task = asyncio.create_task(self._run_loop(session_id))
 
+    # ------------------------------------------------------------------
+    # Session lifecycle
+    # ------------------------------------------------------------------
+
     async def stop_worker(self, session_id: str) -> None:
-        """Signals background loop to stop gracefully, processes final audio, and cleans up."""
+        """Signals the background loop to stop, processes the final window globally, and cleans up."""
         state = None
         with self._lock:
             state = self._states.get(session_id)
-            
+
         if state:
-            logger.info("DiarizationWorker: Stopping worker loop", extra={"session_id": session_id})
+            logger.info(
+                "DiarizationWorker: Stopping worker loop",
+                extra={"session_id": session_id},
+            )
             state.is_active = False
             if state.task:
                 try:
                     await state.task
-                except Exception as e:
-                    logger.error("DiarizationWorker: Error waiting for worker task exit", exc_info=True, extra={"session_id": session_id})
-            
+                except Exception:
+                    logger.error(
+                        "DiarizationWorker: Error waiting for worker task exit",
+                        exc_info=True,
+                        extra={"session_id": session_id},
+                    )
+
             try:
-                await self._process_latest_window(session_id, force=True)
-            except Exception as e:
-                logger.error("DiarizationWorker: Error during final window diarization", exc_info=True, extra={"session_id": session_id})
+                await self._process_latest_window(session_id, force=True, global_pass=True)
+            except Exception:
+                logger.error(
+                    "DiarizationWorker: Error during final window diarization",
+                    exc_info=True,
+                    extra={"session_id": session_id},
+                )
 
     def clear_session(self, session_id: str) -> None:
-        """Clears in-memory session buffer states to avoid leaks."""
+        """Removes all in-memory state for a session to prevent memory leaks."""
         with self._lock:
             if session_id in self._states:
                 del self._states[session_id]
-                logger.info("DiarizationWorker: Session state cleared", extra={"session_id": session_id})
+                logger.info(
+                    "DiarizationWorker: Session state cleared",
+                    extra={"session_id": session_id},
+                )
+
+    # ------------------------------------------------------------------
+    # Background loop
+    # ------------------------------------------------------------------
 
     async def _run_loop(self, session_id: str) -> None:
-        """Background loop executing diarization periodically."""
-        logger.info("DiarizationWorker: Worker loop started", extra={"session_id": session_id})
+        """Fires inference every DIARIZATION_INTERVAL_SECONDS while there is new audio."""
+        logger.info(
+            "DiarizationWorker: Worker loop started",
+            extra={"session_id": session_id},
+        )
+
         state = None
         with self._lock:
             state = self._states.get(session_id)
-            
+
         if not state:
             return
 
-        step_interval = 2.0
+        step_interval = float(settings.DIARIZATION_INTERVAL_SECONDS)
         try:
             while state.is_active:
                 await asyncio.sleep(step_interval)
@@ -194,82 +301,183 @@ class DiarizationWorkerManager:
                     state.has_new_audio = False
                     await self._process_latest_window(session_id)
         except asyncio.CancelledError:
-            logger.debug("DiarizationWorker: Loop task cancelled", extra={"session_id": session_id})
-        except Exception as e:
-            logger.error("DiarizationWorker: Exception in worker loop", exc_info=True, extra={"session_id": session_id})
+            logger.debug(
+                "DiarizationWorker: Loop task cancelled",
+                extra={"session_id": session_id},
+            )
+        except Exception:
+            logger.error(
+                "DiarizationWorker: Exception in worker loop",
+                exc_info=True,
+                extra={"session_id": session_id},
+            )
         finally:
-            logger.info("DiarizationWorker: Worker loop stopped", extra={"session_id": session_id})
+            logger.info(
+                "DiarizationWorker: Worker loop stopped",
+                extra={"session_id": session_id},
+            )
 
-    async def _process_latest_window(self, session_id: str, force: bool = False) -> None:
-        """Extracts the latest 5-second window of audio, runs Pyannote, and updates SpeakerTimeline."""
+    # ------------------------------------------------------------------
+    # Core inference cycle
+    # ------------------------------------------------------------------
+
+    async def _process_latest_window(self, session_id: str, force: bool = False, global_pass: bool = False) -> None:
+        """
+        Extracts the audio window, runs Pyannote (or mock) inference off-thread,
+        then updates the SpeakerTimeline. If global_pass is True, runs globally over
+        the entire session audio and overwrites the timeline with optimal global clustering.
+        """
         state = None
         with self._lock:
             state = self._states.get(session_id)
-            
+
         if not state:
+            return
+
+        if global_pass and getattr(state, "global_pass_completed", False):
+            logger.info("DiarizationWorker: Global pass already completed. Skipping.", extra={"session_id": session_id})
             return
 
         async with state.lock:
             audio_bytes = b"".join(state.chunks_deque)
             total_bytes = state.total_bytes_received
-            
-            bytes_per_second = settings.AUDIO_SAMPLE_RATE * settings.AUDIO_CHANNELS * settings.bytes_per_sample
+
+            bytes_per_second = (
+                settings.AUDIO_SAMPLE_RATE * settings.AUDIO_CHANNELS * settings.bytes_per_sample
+            )
             total_seconds = total_bytes / float(bytes_per_second)
-            
-            window_size = 5.0
-            window_start = max(0.0, total_seconds - window_size)
-            window_end = total_seconds
-            
-            if not force and (window_end - window_start < 1.0):
-                return
-                
-            if not force and (window_end - state.prev_window_end < 0.5):
-                return
-                
-            # Map absolute window_start and window_end to current local audio_bytes offsets
-            audio_data_start_time = max(0.0, (state.total_bytes_received - len(audio_bytes)) / float(bytes_per_second))
-            start_offset_sec = window_start - audio_data_start_time
-            end_offset_sec = window_end - audio_data_start_time
-            
-            start_byte = int(start_offset_sec * bytes_per_second)
-            end_byte = int(end_offset_sec * bytes_per_second)
-            
-            start_byte = max(0, min(start_byte, len(audio_bytes)))
-            end_byte = max(0, min(end_byte, len(audio_bytes)))
-            
-            # Align boundaries to 2-byte sample blocks (16-bit)
-            start_byte = (start_byte // 2) * 2
-            end_byte = (end_byte // 2) * 2
-            
+
+            if global_pass:
+                window_start = 0.0
+                window_end = total_seconds
+                start_byte = 0
+                end_byte = len(audio_bytes)
+            else:
+                window_size = float(settings.DIARIZATION_WINDOW_SECONDS)
+                window_start = max(0.0, total_seconds - window_size)
+                window_end = total_seconds
+
+                if not force and (window_end - window_start < 1.0):
+                    return
+
+                if not force and (window_end - state.prev_window_end < 0.5):
+                    return
+
+                # Map absolute window times to byte offsets in the local buffer
+                audio_data_start_time = max(
+                    0.0,
+                    (state.total_bytes_received - len(audio_bytes)) / float(bytes_per_second),
+                )
+                start_offset_sec = window_start - audio_data_start_time
+                end_offset_sec = window_end - audio_data_start_time
+
+                start_byte = int(start_offset_sec * bytes_per_second)
+                end_byte = int(end_offset_sec * bytes_per_second)
+
+                start_byte = max(0, min(start_byte, len(audio_bytes)))
+                end_byte = max(0, min(end_byte, len(audio_bytes)))
+
+                # Align to 2-byte sample boundaries (16-bit PCM)
+                start_byte = (start_byte // 2) * 2
+                end_byte = (end_byte // 2) * 2
+
             window_audio = audio_bytes[start_byte:end_byte]
-            
+
+            # ----------------------------------------------------------------
+            # Run inference
+            # ----------------------------------------------------------------
             try:
-                if settings.DIARIZATION_MODE == "development" or not settings.HUGGINGFACE_TOKEN:
+                use_production = (
+                    settings.DIARIZATION_MODE == "production"
+                    and bool(settings.HUGGINGFACE_TOKEN)
+                )
+                if use_production:
                     local_segments = await asyncio.to_thread(
-                        get_mock_segments, window_start, window_end
+                        self._run_pyannote_pipeline, session_id, window_audio, window_start
                     )
                 else:
                     local_segments = await asyncio.to_thread(
-                        self._run_pyannote_pipeline, window_audio, window_start
+                        _get_mock_segments, window_start, window_end
                     )
-            except Exception as e:
+            except Exception:
                 logger.error(
                     "DiarizationWorker: Diarization execution failed",
                     exc_info=True,
-                    extra={"session_id": session_id, "error": str(e)}
+                    extra={"session_id": session_id},
                 )
+                return  # Keep the worker alive; retry on the next interval
+
+            if global_pass:
+                # Direct global mapping of Pyannote labels
+                # Pyannote returns labels like 'SPEAKER_00', 'SPEAKER_01', 'SPEAKER_02'
+                # We sort the labels to map them consistently to 'Speaker_0', 'Speaker_1', 'Speaker_2'
+                # Sort unique labels chronologically by their first appearance in the segments
+                first_appearances = {}
+                for seg in local_segments:
+                    lbl = seg["label"]
+                    if lbl not in first_appearances:
+                        first_appearances[lbl] = seg["start"]
+                unique_labels = sorted(list(first_appearances.keys()), key=lambda x: first_appearances[x])
+
+                global_mapping = {}
+                mapping_names = ["doctor", "patient", "attender"]
+                for idx, loc_lbl in enumerate(unique_labels):
+                    if idx < 3:
+                        global_mapping[loc_lbl] = mapping_names[idx]
+                    else:
+                        # Fallback for > 3 speakers in global pass
+                        global_mapping[loc_lbl] = "attender"
+                
+                # Apply mapping and push to global timeline (completely overwriting it)
+                mapped_segments = [
+                    {
+                        "start": seg["start"],
+                        "end": seg["end"],
+                        "label": global_mapping.get(seg["label"], "doctor")
+                    }
+                    for seg in local_segments
+                ]
+                
+                logger.info(
+                    "DiarizationWorker: Global pass completed and mapped",
+                    extra={
+                        "session_id": session_id,
+                        "unique_labels": unique_labels,
+                        "global_mapping": global_mapping,
+                        "segment_count": len(mapped_segments),
+                        "segments_preview": [(s["start"], s["end"], s["label"]) for s in mapped_segments[:20]]
+                    }
+                )
+                
+                timeline = speaker_timeline_manager.get_timeline(session_id)
+                timeline.overwrite_timeline(mapped_segments)
+                
+                state.global_pass_completed = True
+                
+                # Retroactively enrich any cached "UNKNOWN" events in the TranscriptEventBus
+                try:
+                    from app.services.speaker_alignment import speaker_alignment_service
+                    speaker_alignment_service.enrich_cached_events(session_id)
+                except Exception:
+                    logger.error(
+                        "DiarizationWorker: Error triggering event enrichment",
+                        exc_info=True,
+                        extra={"session_id": session_id},
+                    )
                 return
 
-            # Perform Greedy Conflict-Free Bipartite Overlap Matching
+            # ----------------------------------------------------------------
+            # Greedy conflict-free bipartite overlap matching
+            # ----------------------------------------------------------------
             timeline = speaker_timeline_manager.get_timeline(session_id)
             global_timeline = timeline.segments
-            
+
             overlap_start = window_start
             overlap_end = state.prev_window_end
-            
+
             unique_local = list(set(seg["label"] for seg in local_segments))
-            mapping = {}
-            
+            mapping: Dict[str, str] = {}
+
             if overlap_start < overlap_end and global_timeline:
                 triples = []
                 for loc in unique_local:
@@ -277,97 +485,158 @@ class DiarizationWorkerManager:
                         for loc_seg in local_segments:
                             if loc_seg["label"] != loc:
                                 continue
-                                
-                            # Calculate intersection in the overlap region
                             int_start = max(loc_seg["start"], glob_seg["start"], overlap_start)
                             int_end = min(loc_seg["end"], glob_seg["end"], overlap_end)
                             duration = int_end - int_start
                             if duration > 0.05:
                                 triples.append((loc, glob_seg["label"], duration))
-                                
-                # Aggregate durations
-                aggregated = {}
+
+                # Aggregate and sort descending
+                aggregated: Dict = {}
                 for loc, glob, dur in triples:
                     key = (loc, glob)
                     aggregated[key] = aggregated.get(key, 0.0) + dur
-                    
-                # Sort descending
+
                 sorted_pairs = sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
-                
+
                 # Greedy assignment
-                claimed_global = set()
-                for (loc, glob), dur in sorted_pairs:
+                claimed_global: set = set()
+                for (loc, glob), _ in sorted_pairs:
                     if loc not in mapping and glob not in claimed_global:
                         mapping[loc] = glob
                         claimed_global.add(glob)
-                        
-            # Map unmapped local labels
-            allowed_labels = ["Speaker_0", "Speaker_1", "Speaker_2"]
+
+            # Map unmapped local labels to new/unused global slots
+            allowed_labels = ["doctor", "patient", "attender"]
             allocated_labels = set(mapping.values())
             timeline_labels = set(seg["label"] for seg in global_timeline)
             used_labels = allocated_labels.union(timeline_labels)
-            
+
             for loc in unique_local:
                 if loc not in mapping:
-                    # Find unused allowed labels
                     unused_allowed = [lbl for lbl in allowed_labels if lbl not in used_labels]
                     if unused_allowed:
                         mapped_label = unused_allowed[0]
                         mapping[loc] = mapped_label
                         used_labels.add(mapped_label)
                     else:
-                        # Hard Speaker Cap Fallback (Priority mapping)
-                        mapped_label = self._map_unmapped_to_existing(loc, local_segments, global_timeline)
+                        # Hard speaker-cap fallback
+                        mapped_label = self._map_unmapped_to_existing(
+                            loc, local_segments, global_timeline
+                        )
                         mapping[loc] = mapped_label
-                        
                         logger.warning(
-                            "Exceeded maximum speaker cap",
+                            "DiarizationWorker: Exceeded maximum speaker cap",
                             extra={
                                 "session_id": session_id,
                                 "window_start": window_start,
                                 "window_end": window_end,
                                 "local_label": loc,
-                                "mapped_to": mapped_label
-                            }
+                                "mapped_to": mapped_label,
+                            },
                         )
-                    
-            # Apply mapping and convert local to global segments
-            mapped_segments = []
-            for loc_seg in local_segments:
-                mapped_segments.append({
-                    "start": loc_seg["start"],
-                    "end": loc_seg["end"],
-                    "label": mapping[loc_seg["label"]]
-                })
-                
-            # Update global timeline
+
+            # Apply mapping and push to global timeline
+            mapped_segments = [
+                {"start": seg["start"], "end": seg["end"], "label": mapping[seg["label"]]}
+                for seg in local_segments
+            ]
+
             timeline.update_timeline(mapped_segments, window_start)
-            
+
             state.prev_window_start = window_start
             state.prev_window_end = window_end
-            
+
             # Retroactively enrich any cached "UNKNOWN" events in the TranscriptEventBus
             try:
                 from app.services.speaker_alignment import speaker_alignment_service
                 speaker_alignment_service.enrich_cached_events(session_id)
-            except Exception as e:
+            except Exception:
                 logger.error(
-                    "DiarizationWorker: Error trigger event enrichment",
+                    "DiarizationWorker: Error triggering event enrichment",
                     exc_info=True,
-                    extra={"session_id": session_id, "error": str(e)}
+                    extra={"session_id": session_id},
                 )
 
-    def _map_unmapped_to_existing(self, loc: str, local_segments: list, global_timeline: list) -> str:
+    # ------------------------------------------------------------------
+    # Pyannote inference (runs in a thread-pool via asyncio.to_thread)
+    # ------------------------------------------------------------------
+
+    def _run_pyannote_pipeline(
+        self, session_id: str, audio_bytes: bytes, window_start: float
+    ) -> list:
         """
-        Fallback matching logic when all 3 global speaker slots are occupied.
+        Converts raw PCM bytes to a normalised float32 tensor and runs the
+        Pyannote diarization pipeline.  No temporary WAV files are created.
+
+        Returns a list of dicts:
+            [{"start": float, "end": float, "label": str}, ...]
+        where times are expressed in absolute session seconds (window_start + local_offset).
+        """
+        # Pipeline must be pre-loaded by preload_pipeline() at startup (async context).
+        # _lazy_init_pyannote() must NOT be called here because this method runs inside
+        # asyncio.to_thread — that worker thread has no event loop, and pyannote.audio's
+        # import-time asyncio code would crash with "RuntimeError: no running event loop".
+        if self._pipeline is None:
+            logger.error(
+                "DiarizationWorker: Pipeline not loaded — skipping inference window. "
+                "Ensure preload_pipeline() was awaited at startup.",
+                extra={"session_id": session_id},
+            )
+            return []
+
+        if not audio_bytes:
+            return []
+
+        # Convert PCM bytes → normalised float32 tensor (no WAV intermediary)
+        audio_input = _pcm_bytes_to_tensor(audio_bytes)
+
+        t0 = time.perf_counter()
+        diarization = self._pipeline(audio_input, min_speakers=1, max_speakers=3)
+        inference_ms = (time.perf_counter() - t0) * 1000.0
+
+        # Support both legacy Annotation object and new DiarizeOutput wrapper in pyannote 3.1+
+        annotation = getattr(diarization, "speaker_diarization", diarization)
+
+        local_segments = []
+        for segment, _track, label in annotation.itertracks(yield_label=True):
+            local_segments.append({
+                "start": window_start + segment.start,
+                "end": window_start + segment.end,
+                "label": label,   # e.g. "SPEAKER_00", "SPEAKER_01" – mapped by greedy matcher
+            })
+
+        speaker_count = len(set(seg["label"] for seg in local_segments))
+        logger.info(
+            "DiarizationWorker: Diarization completed",
+            extra={
+                "session_id": session_id,
+                "speaker_count": speaker_count,
+                "window_seconds": settings.DIARIZATION_WINDOW_SECONDS,
+                "inference_time_ms": round(inference_ms, 1),
+            },
+        )
+
+        return local_segments
+
+    # ------------------------------------------------------------------
+    # Hard-cap fallback helper
+    # ------------------------------------------------------------------
+
+    def _map_unmapped_to_existing(
+        self, loc: str, local_segments: list, global_timeline: list
+    ) -> str:
+        """
+        Fallback matching when all three global speaker slots are occupied.
         Priority:
-        1. Greatest overlap duration
-        2. Proximity closest in time
-        3. Continuity (ended most recently before current segments start)
+        1. Greatest temporal overlap with an existing global segment.
+        2. Temporal proximity (closest in time).
+        3. Continuity (the global speaker whose segment ended most recently
+           before the current local segment starts).
         """
-        allowed = ["Speaker_0", "Speaker_1", "Speaker_2"]
-        
-        # 1. Overlap duration calculation
+        allowed = ["doctor", "patient", "attender"]
+
+        # 1. Overlap duration
         overlaps = {lbl: 0.0 for lbl in allowed}
         for loc_seg in local_segments:
             if loc_seg["label"] != loc:
@@ -380,22 +649,24 @@ class DiarizationWorkerManager:
                 dur = int_end - int_start
                 if dur > 0:
                     overlaps[glob_seg["label"]] += dur
-                    
+
         best_overlap_speaker = max(overlaps, key=overlaps.get)
         if overlaps[best_overlap_speaker] > 0.01:
             return best_overlap_speaker
-            
-        # 2. Proximity calculation
+
+        # 2. Proximity
         proximity = {lbl: float("inf") for lbl in allowed}
         loc_segs_for_lbl = [s for s in local_segments if s["label"] == loc]
-        
         for loc_seg in loc_segs_for_lbl:
             for glob_seg in global_timeline:
                 if glob_seg["label"] not in allowed:
                     continue
-                dist = min(abs(loc_seg["start"] - glob_seg["end"]), abs(loc_seg["end"] - glob_seg["start"]))
+                dist = min(
+                    abs(loc_seg["start"] - glob_seg["end"]),
+                    abs(loc_seg["end"] - glob_seg["start"]),
+                )
                 proximity[glob_seg["label"]] = min(proximity[glob_seg["label"]], dist)
-                
+
         min_dist = min(proximity.values())
         if min_dist != float("inf"):
             closest_speakers = [lbl for lbl, d in proximity.items() if d == min_dist]
@@ -403,47 +674,24 @@ class DiarizationWorkerManager:
                 return closest_speakers[0]
         else:
             closest_speakers = allowed
-            
-        # 3. Continuity fallback (ended most recently before the start of the local segments)
+
+        # 3. Continuity
         first_loc_start = min(s["start"] for s in loc_segs_for_lbl) if loc_segs_for_lbl else 0.0
-        
         latest_end_before_start = -1.0
         best_spk = closest_speakers[0]
         for glob_seg in global_timeline:
             if glob_seg["label"] in closest_speakers:
-                if glob_seg["end"] <= first_loc_start and glob_seg["end"] > latest_end_before_start:
+                if (
+                    glob_seg["end"] <= first_loc_start
+                    and glob_seg["end"] > latest_end_before_start
+                ):
                     latest_end_before_start = glob_seg["end"]
                     best_spk = glob_seg["label"]
-                    
+
         return best_spk
 
-    def _run_pyannote_pipeline(self, audio_bytes: bytes, window_start: float) -> list:
-        _lazy_init_pyannote()
-        
-        if self._pipeline is None:
-            logger.info("DiarizationWorker: Initializing Pyannote Pipeline...")
-            self._pipeline = Pipeline.from_pretrained(
-                "pyannote/speaker-diarization-3.1",
-                token=settings.HUGGINGFACE_TOKEN
-            )
-            if torch.cuda.is_available():
-                self._pipeline.to(torch.device("cuda"))
-                logger.info("DiarizationWorker: Pipeline loaded on CUDA")
-            else:
-                logger.info("DiarizationWorker: Pipeline loaded on CPU")
-                
-        wav_io = pcm_to_wav_io(audio_bytes)
-        annotation = self._pipeline(wav_io)
-        
-        local_segments = []
-        for segment, track, label in annotation.itertracks(yield_label=True):
-            local_segments.append({
-                "start": window_start + segment.start,
-                "end": window_start + segment.end,
-                "label": label
-            })
-        return local_segments
 
-
-# Singleton Instance
+# ---------------------------------------------------------------------------
+# Singleton
+# ---------------------------------------------------------------------------
 diarization_worker_manager = DiarizationWorkerManager()

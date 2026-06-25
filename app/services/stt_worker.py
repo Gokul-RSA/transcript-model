@@ -26,9 +26,9 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
     logger.info("STTWorker: Starting Scribe receive loop", extra={"session_id": session_id, "role": role})
     try:
         while True:
-            # Wait for up to 10 seconds to receive a transcript event from ElevenLabs
+            # Wait for up to 120 seconds to receive a transcript event from ElevenLabs
             try:
-                res = await asyncio.wait_for(provider.receive(), timeout=10.0)
+                res = await asyncio.wait_for(provider.receive(), timeout=120.0)
             except TimeoutError:
                 # If commit was requested, a timeout means we should exit instead of reconnecting
                 if getattr(provider, "commit_requested", False):
@@ -37,7 +37,7 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
                         extra={"session_id": session_id, "role": role}
                     )
                     break
-                # If 10 seconds pass with no message, assume connection hung and reconnect
+                # If 120 seconds pass with no message, assume connection hung and reconnect
                 logger.warning(
                     "STTWorker: Scribe receive timeout occurred, reconnecting",
                     extra={"session_id": session_id, "role": role}
@@ -63,7 +63,30 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
 
             if res.get("type") == "ignored":
                 continue
-                
+
+            # If this is the final committed transcript (type == "committed" and commit_requested is True),
+            # trigger and wait for the final global diarization pass to complete first!
+            # This guarantees that the SpeakerTimeline is 100% updated with globally optimal clusters
+            # before the final committed transcript is aligned and segmented.
+            if res.get("type") == "committed" and getattr(provider, "commit_requested", False):
+                logger.info(
+                    "STTWorker: Final committed transcript received. Triggering and awaiting global diarization pass...",
+                    extra={"session_id": session_id, "role": role}
+                )
+                try:
+                    from app.services.diarization_worker import diarization_worker_manager
+                    await diarization_worker_manager.stop_worker(session_id)
+                    
+                    # Run the global re-alignment over all cached committed responses
+                    from app.services.speaker_alignment import speaker_alignment_service
+                    speaker_alignment_service.realign_session(session_id)
+                except Exception as e:
+                    logger.error(
+                        "STTWorker: Error waiting for final global diarization pass",
+                        exc_info=True,
+                        extra={"session_id": session_id, "role": role, "error": str(e)}
+                    )
+
             from app.services.speaker_alignment import speaker_alignment_service
             events = speaker_alignment_service.align_and_segment(session_id, role, res, provider)
             for event in events:

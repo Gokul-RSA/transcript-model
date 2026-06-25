@@ -41,7 +41,7 @@ class SpeakerTimeline:
             # Append the new mapped segments
             for new_seg in new_segments:
                 # Ensure we only append allowed global speaker labels (Hard Cap: Max 3)
-                if new_seg["label"] not in ["Speaker_0", "Speaker_1", "Speaker_2"]:
+                if new_seg["label"] not in ["doctor", "patient", "attender"]:
                     continue
 
                 if new_seg["end"] <= window_start:
@@ -73,6 +73,35 @@ class SpeakerTimeline:
                 extra={"session_id": self.session_id, "segment_count": len(self.segments)}
             )
 
+    def overwrite_timeline(self, new_segments: List[Dict[str, any]]) -> None:
+        """
+        Completely overwrites the timeline with a new set of global segments.
+        Filters for allowed speakers, sorts, and merges adjacent identical speakers.
+        """
+        with self._lock:
+            # Filter and ensure only allowed global speaker labels (Hard Cap: Max 3)
+            filtered = []
+            for seg in new_segments:
+                if seg["label"] in ["doctor", "patient", "attender"]:
+                    filtered.append(seg)
+            # Sort and merge adjacent identical speaker segments
+            merged = []
+            if filtered:
+                filtered.sort(key=lambda x: x["start"])
+                curr = filtered[0]
+                for nxt in filtered[1:]:
+                    if nxt["label"] == curr["label"] and nxt["start"] <= curr["end"] + 0.05:
+                        curr["end"] = max(curr["end"], nxt["end"])
+                    else:
+                        merged.append(curr)
+                        curr = nxt
+                merged.append(curr)
+            self.segments = merged
+            logger.info(
+                "SpeakerTimeline: Timeline overwritten with global pass segments",
+                extra={"session_id": self.session_id, "segment_count": len(self.segments)}
+            )
+
     def get_speaker_for_range(self, start: float, end: float) -> str:
         """
         Determines the active speaker for a time range [start, end].
@@ -85,7 +114,7 @@ class SpeakerTimeline:
         """
         with self._lock:
             # Filter segments to enforce hard cap safety
-            valid_segs = [s for s in self.segments if s["label"] in ["Speaker_0", "Speaker_1", "Speaker_2"]]
+            valid_segs = [s for s in self.segments if s["label"] in ["doctor", "patient", "attender"]]
             if not valid_segs:
                 return "UNKNOWN"
 

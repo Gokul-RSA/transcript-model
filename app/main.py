@@ -42,6 +42,11 @@ async def startup_event():
     # Start background STT worker reconciliation orchestrator loop
     stt_manager.start_orchestrator()
 
+    # Preload Pyannote diarization pipeline in production mode
+    if settings.DIARIZATION_MODE == "production":
+        from app.services.diarization_worker import diarization_worker_manager
+        await diarization_worker_manager.preload_pipeline()
+
 # Shutdown logging
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -65,10 +70,13 @@ async def health_check():
 
 # Dynamic Verification Endpoint for Step 2 Transcripts
 @app.get("/v1/transcripts/{session_id}", status_code=status.HTTP_200_OK)
-async def get_transcripts(session_id: str):
+async def get_transcripts(session_id: str, include_partials: bool = False):
     """
     Retrieves buffered transcript events for a given session.
+    If include_partials is False (default), only final (committed) events are returned.
     """
     from app.services.transcript_bus import transcript_bus
     events = transcript_bus.get_recent_events(session_id)
+    if not include_partials:
+        events = [e for e in events if e.is_final]
     return [event.dict() for event in events]
