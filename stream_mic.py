@@ -4,6 +4,7 @@ import sys
 import json
 import urllib.request
 import time
+import uuid
 
 try:
     import pyaudio
@@ -14,7 +15,7 @@ except ImportError:
 
 WS_URL = "ws://127.0.0.1:8000/v1/streaming/audio"
 TOKEN = "production-secure-token-change-me"
-SESSION_ID = "consultation-xyz-123"
+SESSION_ID = ""
 
 # Audio parameters matching backend constraints
 FORMAT = pyaudio.paInt16
@@ -73,21 +74,27 @@ async def stream_mic(role: str):
         p.terminate()
 
 def fetch_transcripts():
-    print("\nWaiting 1.5 seconds for final STT worker flushes to settle...")
-    time.sleep(1.5)
-    print("Retrieving transcripts from backend...")
-    try:
-        url = f"http://127.0.0.1:8000/v1/transcripts/{SESSION_ID}"
-        with urllib.request.urlopen(url) as response:
-            transcripts = json.loads(response.read().decode())
-            print(f"Fetched {len(transcripts)} transcript events successfully:")
-            for event in transcripts:
-                role = event['role'].upper()
-                speaker = event.get('speaker_id', 'UNKNOWN')
-                print(f" - [{role} / {speaker}] [final: {event['is_final']}]: '{event['transcript']}'")
-
-    except Exception as e:
-        print(f"Failed to retrieve transcripts: {e}", file=sys.stderr)
+    print("\nRetrieving transcripts from backend...")
+    max_attempts = 30
+    for attempt in range(1, max_attempts + 1):
+        try:
+            url = f"http://127.0.0.1:8000/v1/transcripts/{SESSION_ID}"
+            with urllib.request.urlopen(url) as response:
+                transcripts = json.loads(response.read().decode())
+                if transcripts:
+                    print(f"Fetched {len(transcripts)} transcript events successfully:")
+                    for event in transcripts:
+                        role = event['role'].upper()
+                        speaker = event.get('speaker_id', 'UNKNOWN')
+                        print(f" - [{role} / {speaker}] [final: {event['is_final']}]: '{event['transcript']}'")
+                    return
+        except Exception as e:
+            pass
+        
+        time.sleep(1.0)
+        print(f"Waiting for transcripts to settle (attempt {attempt}/{max_attempts})...")
+        
+    print("Timeout waiting for transcripts from backend. Diarization might still be processing on the server.", file=sys.stderr)
 
 if __name__ == "__main__":
     role = sys.argv[1] if len(sys.argv) > 1 else "doctor"
@@ -95,9 +102,22 @@ if __name__ == "__main__":
         print(f"Error: Invalid role '{role}'. Must be doctor, patient, or attender.")
         sys.exit(1)
         
+    SESSION_ID = f"consultation-xyz-{uuid.uuid4().hex[:6]}"
     try:
         asyncio.run(stream_mic(role))
     except KeyboardInterrupt:
         print("\nStopping microphone stream...")
     finally:
         fetch_transcripts()
+        
+        # Query and display the final clinical state from the engine
+        print("\nRetrieving clinical state from Clinical State Engine...")
+        try:
+            url = f"http://127.0.0.1:8000/v1/clinical-state/{SESSION_ID}"
+            with urllib.request.urlopen(url) as response:
+                state = json.loads(response.read().decode())
+                print("\n================ CLINICAL STATE ================ ")
+                print(json.dumps(state, indent=4))
+                print("================================================ ")
+        except Exception as e:
+            print(f"Error fetching clinical state: {e}", file=sys.stderr)

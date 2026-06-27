@@ -74,15 +74,15 @@ def _pcm_bytes_to_tensor(pcm_bytes: bytes):
 def _get_mock_speaker(timestamp: float) -> str:
     cycle = timestamp % 30.0
     if cycle < 5.0:
-        return "doctor"
+        return "Speaker_0"
     elif cycle < 12.0:
-        return "patient"
+        return "Speaker_1"
     elif cycle < 18.0:
-        return "doctor"
+        return "Speaker_0"
     elif cycle < 22.0:
-        return "attender"
+        return "Speaker_2"
     else:
-        return "doctor"
+        return "Speaker_0"
 
 
 def _get_mock_segments(window_start: float, window_end: float) -> list:
@@ -334,11 +334,11 @@ class DiarizationWorkerManager:
         if not state:
             return
 
-        if global_pass and getattr(state, "global_pass_completed", False):
-            logger.info("DiarizationWorker: Global pass already completed. Skipping.", extra={"session_id": session_id})
-            return
-
         async with state.lock:
+            if global_pass and getattr(state, "global_pass_completed", False):
+                logger.info("DiarizationWorker: Global pass already completed. Skipping.", extra={"session_id": session_id})
+                return
+
             audio_bytes = b"".join(state.chunks_deque)
             total_bytes = state.total_bytes_received
 
@@ -410,7 +410,7 @@ class DiarizationWorkerManager:
             if global_pass:
                 # Direct global mapping of Pyannote labels
                 # Pyannote returns labels like 'SPEAKER_00', 'SPEAKER_01', 'SPEAKER_02'
-                # We sort the labels to map them consistently to 'Speaker_0', 'Speaker_1', 'Speaker_2'
+                # We sort the labels to map them consistently to Speaker_0, Speaker_1, Speaker_2
                 # Sort unique labels chronologically by their first appearance in the segments
                 first_appearances = {}
                 for seg in local_segments:
@@ -419,21 +419,21 @@ class DiarizationWorkerManager:
                         first_appearances[lbl] = seg["start"]
                 unique_labels = sorted(list(first_appearances.keys()), key=lambda x: first_appearances[x])
 
+                from app.services.speaker_timeline import SPEAKER_LABELS
                 global_mapping = {}
-                mapping_names = ["doctor", "patient", "attender"]
                 for idx, loc_lbl in enumerate(unique_labels):
-                    if idx < 3:
-                        global_mapping[loc_lbl] = mapping_names[idx]
+                    if idx < len(SPEAKER_LABELS):
+                        global_mapping[loc_lbl] = SPEAKER_LABELS[idx]
                     else:
-                        # Fallback for > 3 speakers in global pass
-                        global_mapping[loc_lbl] = "attender"
+                        # Fallback for > MAX_SPEAKERS
+                        global_mapping[loc_lbl] = SPEAKER_LABELS[-1]
                 
                 # Apply mapping and push to global timeline (completely overwriting it)
                 mapped_segments = [
                     {
                         "start": seg["start"],
                         "end": seg["end"],
-                        "label": global_mapping.get(seg["label"], "doctor")
+                        "label": global_mapping.get(seg["label"], SPEAKER_LABELS[0])
                     }
                     for seg in local_segments
                 ]
@@ -475,7 +475,12 @@ class DiarizationWorkerManager:
             overlap_start = window_start
             overlap_end = state.prev_window_end
 
-            unique_local = list(set(seg["label"] for seg in local_segments))
+            # Extract unique local labels in deterministic chronological order of first appearance
+            first_seen = {}
+            for seg in local_segments:
+                if seg["label"] not in first_seen:
+                    first_seen[seg["label"]] = seg["start"]
+            unique_local = sorted(list(first_seen.keys()), key=lambda x: first_seen[x])
             mapping: Dict[str, str] = {}
 
             if overlap_start < overlap_end and global_timeline:
@@ -507,7 +512,8 @@ class DiarizationWorkerManager:
                         claimed_global.add(glob)
 
             # Map unmapped local labels to new/unused global slots
-            allowed_labels = ["doctor", "patient", "attender"]
+            from app.services.speaker_timeline import SPEAKER_LABELS
+            allowed_labels = SPEAKER_LABELS
             allocated_labels = set(mapping.values())
             timeline_labels = set(seg["label"] for seg in global_timeline)
             used_labels = allocated_labels.union(timeline_labels)
@@ -592,7 +598,12 @@ class DiarizationWorkerManager:
         audio_input = _pcm_bytes_to_tensor(audio_bytes)
 
         t0 = time.perf_counter()
-        diarization = self._pipeline(audio_input, min_speakers=1, max_speakers=3)
+        diarization = self._pipeline(
+            audio_input,
+            min_speakers=settings.DIARIZATION_MIN_SPEAKERS,
+            max_speakers=3,
+            batch_size=32
+        )
         inference_ms = (time.perf_counter() - t0) * 1000.0
 
         # Support both legacy Annotation object and new DiarizeOutput wrapper in pyannote 3.1+
@@ -634,7 +645,8 @@ class DiarizationWorkerManager:
         3. Continuity (the global speaker whose segment ended most recently
            before the current local segment starts).
         """
-        allowed = ["doctor", "patient", "attender"]
+        from app.services.speaker_timeline import SPEAKER_LABELS
+        allowed = SPEAKER_LABELS
 
         # 1. Overlap duration
         overlaps = {lbl: 0.0 for lbl in allowed}

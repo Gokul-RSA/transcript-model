@@ -10,6 +10,8 @@ class ClinicalNormalizer:
             r"\bheadaches\b": "headache",
             r"\bhead\s+(?:is\s+|has\s+been\s+|was\s+)?pounding\b": "headache",
             r"\bpounding\s+head\b": "headache",
+            r"\bhead\s+pain\b": "headache",
+            r"\bpain\s+in\s+(?:the\s+)?head\b": "headache",
             
             # Dizziness variations (e.g. "dizzy", "light-headed")
             r"\bdizzy\b": "dizziness",
@@ -36,7 +38,9 @@ class ClinicalNormalizer:
             # General mappings
             r"\bhigh\s+blood\s+pressure\b": "hypertension",
             r"\bblood\s+sugar\s+problem\b": "diabetes",
-            r"\bpain\s*-?\s*killers?\b": "analgesic"
+            r"\bpain\s*-?\s*killers?\b": "analgesic",
+            r"\bpain\s+in\s+(?:my\s+|the\s+)?chest\b": "chest pain",
+            r"\bchest\s+pains\b": "chest pain"
         }
 
     def normalize(self, text: str) -> str:

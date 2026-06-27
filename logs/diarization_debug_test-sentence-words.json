@@ -1,0 +1,164 @@
+{
+  "session_id": "test-sentence-words",
+  "timestamp": 1782536623.0051868,
+  "pyannote_segments": [
+    {
+      "start": 0.0,
+      "end": 2.0,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 2.0,
+      "end": 5.0,
+      "label": "Speaker_1"
+    }
+  ],
+  "words": [
+    {
+      "text": "Good",
+      "start": 0.1,
+      "end": 0.5
+    },
+    {
+      "text": " morning.",
+      "start": 0.5,
+      "end": 1.0
+    },
+    {
+      "text": " I",
+      "start": 2.1,
+      "end": 2.3
+    },
+    {
+      "text": " have",
+      "start": 2.3,
+      "end": 2.6
+    },
+    {
+      "text": " an",
+      "start": 2.6,
+      "end": 2.8
+    },
+    {
+      "text": " appointment.",
+      "start": 2.8,
+      "end": 3.5
+    }
+  ],
+  "word_speaker_mapping": [
+    {
+      "word": "Good",
+      "start": 0.1,
+      "end": 0.5,
+      "raw_speaker": "Speaker_0",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_0": 0.4
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "morning.",
+      "start": 0.5,
+      "end": 1.0,
+      "raw_speaker": "Speaker_0",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_0": 0.5
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "I",
+      "start": 2.1,
+      "end": 2.3,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "patient",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.19999999999999973
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "have",
+      "start": 2.3,
+      "end": 2.6,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "patient",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.30000000000000027
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "an",
+      "start": 2.6,
+      "end": 2.8,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "patient",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.19999999999999973
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "appointment.",
+      "start": 2.8,
+      "end": 3.5,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "patient",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.7000000000000002
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    }
+  ],
+  "final_events": [
+    {
+      "event_id": "041fcfe5-adac-419b-ad26-f2ca1e5ffbe0",
+      "sequence_number": 0,
+      "speaker_id": "doctor",
+      "transcript": "Good morning.",
+      "start_time": 0.1,
+      "end_time": 1.0
+    },
+    {
+      "event_id": "875c4818-8f1a-4045-9018-2cf6558eb21b",
+      "sequence_number": 0,
+      "speaker_id": "patient",
+      "transcript": "I have an appointment.",
+      "start_time": 2.1,
+      "end_time": 3.5
+    }
+  ]
+}

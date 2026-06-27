@@ -66,10 +66,18 @@ class ClinicalEntityExtractor:
         ]
         
         self.procedure_terms = [
+            "cbc",
             "mri",
             "ct scan",
             "x-ray",
-            "blood test"
+            "ecg",
+            "ekg",
+            "blood test",
+            "blood tests",
+            "urine test",
+            "urine tests",
+            "hba1c",
+            "lipid profile"
         ]
         
         # Risk factor terms matching Box 4 of technical architecture
@@ -106,7 +114,7 @@ class ClinicalEntityExtractor:
         }
         
         self.post_negation_triggers = {
-            "negative", "ruled", "resolved", "absent"
+            "negative", "ruled", "resolved", "absent", "gone", "cleared", "cured"
         }
 
     def _expand_contractions(self, text: str) -> str:
@@ -347,6 +355,18 @@ class ClinicalEntityExtractor:
 
         return consolidated
 
+    def _get_confidence(self, clause: str) -> float:
+        clause_lower = clause.lower()
+        low_hedging = {"maybe", "perhaps", "possibly", "suspect", "suspected", "might"}
+        med_hedging = {"probably", "could be", "likely", "possible"}
+        for w in low_hedging:
+            if re.search(r'\b' + re.escape(w) + r'\b', clause_lower):
+                return 0.4  # Low
+        for w in med_hedging:
+            if re.search(r'\b' + re.escape(w) + r'\b', clause_lower):
+                return 0.7  # Medium
+        return 1.0  # High
+
     def extract(self, text: str, speaker_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Extracts clinical entities from text using deterministic, case-insensitive regex rules.
@@ -420,18 +440,44 @@ class ClinicalEntityExtractor:
                     # Detect durations in this clause using the upgraded detector
                     detected_durations = self._detect_durations(clause)
                     
+                    # Proximity-based Context Association helper
+                    def find_closest_symptom(modifier_pos, symptoms):
+                        if not symptoms:
+                            return None
+                        return min(symptoms, key=lambda s: abs(s["start"] - modifier_pos))
+
+                    # Map modifiers to their closest symptoms
+                    severity_mapping = {}
+                    for sev in detected_severities:
+                        closest_sym = find_closest_symptom(sev["start"], detected_symptoms)
+                        if closest_sym:
+                            key = (closest_sym["name"], closest_sym["start"])
+                            if key not in severity_mapping or abs(sev["start"] - closest_sym["start"]) < abs(severity_mapping[key]["start"] - closest_sym["start"]):
+                                severity_mapping[key] = sev
+
+                    duration_mapping = {}
+                    for dur in detected_durations:
+                        closest_sym = find_closest_symptom(dur["start"], detected_symptoms)
+                        if closest_sym:
+                            key = (closest_sym["name"], closest_sym["start"])
+                            if key not in duration_mapping or abs(dur["start"] - closest_sym["start"]) < abs(duration_mapping[key]["start"] - closest_sym["start"]):
+                                duration_mapping[key] = dur
+
                     # Associate and check negation for each symptom in the clause
+                    confidence_val = self._get_confidence(clause)
                     for sym in detected_symptoms:
-                        associated_severity = None
-                        if detected_severities:
-                            closest_sev = min(detected_severities, key=lambda x: abs(x["start"] - sym["start"]))
-                            associated_severity = closest_sev["value"]
+                        key = (sym["name"], sym["start"])
                         
-                        associated_duration = None
-                        if detected_durations:
-                            closest_dur = min(detected_durations, key=lambda x: abs(x["start"] - sym["start"]))
-                            associated_duration = closest_dur["value"]
-                        
+                        sev_match = severity_mapping.get(key)
+                        associated_severity = sev_match["value"] if sev_match else None
+                        if not associated_severity and len(detected_symptoms) == 1 and detected_severities:
+                            associated_severity = detected_severities[0]["value"]
+                            
+                        dur_match = duration_mapping.get(key)
+                        associated_duration = dur_match["value"] if dur_match else None
+                        if not associated_duration and len(detected_symptoms) == 1 and detected_durations:
+                            associated_duration = detected_durations[0]["value"]
+
                         is_neg = self._is_negated(clause, sym["name"], sym["start"], sym["end"])
                         
                         results["symptoms"].append(SymptomEntity(
@@ -439,7 +485,7 @@ class ClinicalEntityExtractor:
                             severity=associated_severity,
                             duration=associated_duration,
                             present=not is_neg,
-                            confidence=1.0
+                            confidence=confidence_val
                         ))
 
                 # --- Medication Extraction ---
@@ -447,10 +493,11 @@ class ClinicalEntityExtractor:
                     pattern = r'\b' + re.escape(term) + r'\b'
                     for match in re.finditer(pattern, clause, re.IGNORECASE):
                         is_neg = self._is_negated(clause, term, match.start(), match.end())
+                        confidence_val = self._get_confidence(clause)
                         results["medications"].append(MedicationEntity(
                             name=term,
                             present=not is_neg,
-                            confidence=1.0
+                            confidence=confidence_val
                         ))
 
                 # --- Diagnosis Extraction ---
@@ -458,10 +505,11 @@ class ClinicalEntityExtractor:
                     pattern = r'\b' + re.escape(term) + r'\b'
                     for match in re.finditer(pattern, clause, re.IGNORECASE):
                         is_neg = self._is_negated(clause, term, match.start(), match.end())
+                        confidence_val = self._get_confidence(clause)
                         results["diagnoses"].append(DiagnosisEntity(
                             name=term,
                             present=not is_neg,
-                            confidence=1.0
+                            confidence=confidence_val
                         ))
 
                 # --- Procedure Extraction ---
@@ -470,20 +518,32 @@ class ClinicalEntityExtractor:
                     for match in re.finditer(pattern, clause, re.IGNORECASE):
                         is_neg = self._is_negated(clause, term, match.start(), match.end())
                         
-                        canonical_name = term
-                        if term.lower() == "mri":
+                        canonical_name = term.capitalize()
+                        term_lower = term.lower()
+                        if term_lower == "cbc":
+                            canonical_name = "CBC"
+                        elif term_lower == "mri":
                             canonical_name = "MRI"
-                        elif term.lower() == "ct scan":
+                        elif term_lower == "ct scan":
                             canonical_name = "CT scan"
-                        elif term.lower() == "x-ray":
+                        elif term_lower == "x-ray":
                             canonical_name = "X-ray"
-                        elif term.lower() == "blood test":
-                            canonical_name = "blood test"
+                        elif term_lower in ["ecg", "ekg"]:
+                            canonical_name = "ECG"
+                        elif term_lower in ["blood test", "blood tests"]:
+                            canonical_name = "Blood test"
+                        elif term_lower in ["urine test", "urine tests"]:
+                            canonical_name = "Urine test"
+                        elif term_lower == "hba1c":
+                            canonical_name = "HbA1c"
+                        elif term_lower == "lipid profile":
+                            canonical_name = "Lipid profile"
                         
+                        confidence_val = self._get_confidence(clause)
                         results["procedures"].append(ProcedureEntity(
                             name=canonical_name,
                             present=not is_neg,
-                            confidence=1.0
+                            confidence=confidence_val
                         ))
                         
                 # --- Risk Factor Extraction ---
@@ -500,10 +560,11 @@ class ClinicalEntityExtractor:
                         elif term == "drinking":
                             canonical_name = "alcohol"
                             
+                        confidence_val = self._get_confidence(clause)
                         results["risk_factors"].append(RiskFactorEntity(
                             name=canonical_name,
                             present=not is_neg,
-                            confidence=1.0
+                            confidence=confidence_val
                         ))
                         
                 # --- Family History Extraction ---
@@ -527,11 +588,12 @@ class ClinicalEntityExtractor:
                             closest_fm = min(detected_families, key=lambda x: abs(x["start"] - match.start()))
                             
                             is_neg = self._is_negated(clause, cond, match.start(), match.end())
+                            confidence_val = self._get_confidence(clause)
                             results["family_histories"].append(FamilyHistoryEntity(
                                 relationship=closest_fm["relationship"],
                                 condition=cond,
                                 present=not is_neg,
-                                confidence=1.0
+                                confidence=confidence_val
                             ))
 
         # Apply Entity Deduplication and Consolidation

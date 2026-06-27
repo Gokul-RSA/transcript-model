@@ -176,9 +176,9 @@ async def stt_worker_task(stream, provider) -> None:
         # Draining finished! Send commit to provider.
         await provider.send_commit()
 
-        # Wait for the receive_task to finish naturally with a 5.0 second safety timeout
+        # Wait for the receive_task to finish naturally with a 1200.0 second safety timeout (accommodates slow CPU diarization)
         try:
-            await asyncio.wait_for(receive_task, timeout=5.0)
+            await asyncio.wait_for(receive_task, timeout=1200.0)
         except (TimeoutError, asyncio.TimeoutError):
             logger.warning(
                 "STTWorker: Timeout waiting for receive task to complete naturally",

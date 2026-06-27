@@ -114,6 +114,16 @@ async def audio_streaming_endpoint(
             # Option B: Enqueue remaining chunk into ready queue for downstream STT processing
             try:
                 stream.buffer.ready_chunks_queue.put_nowait(remaining_chunk)
+            except asyncio.QueueFull:
+                try:
+                    stream.buffer.ready_chunks_queue.get_nowait()
+                    stream.buffer.ready_chunks_queue.task_done()
+                    stream.buffer.ready_chunks_queue.put_nowait(remaining_chunk)
+                except Exception as e:
+                    logger.error(
+                        "Failed to enqueue trailing flush chunk after popping",
+                        extra={"session_id": session_id, "role": role, "error": str(e)}
+                    )
             except Exception as e:
                 logger.error(
                     "Failed to enqueue trailing flush chunk",
@@ -122,7 +132,16 @@ async def audio_streaming_endpoint(
             
         # Send sentinel value (None) to signal end of stream
         try:
-            stream.buffer.ready_chunks_queue.put_nowait(None)
+            while True:
+                try:
+                    stream.buffer.ready_chunks_queue.put_nowait(None)
+                    break
+                except asyncio.QueueFull:
+                    try:
+                        stream.buffer.ready_chunks_queue.get_nowait()
+                        stream.buffer.ready_chunks_queue.task_done()
+                    except asyncio.QueueEmpty:
+                        pass
             
             # Signal end of stream to diarization worker
             from app.services.audio_tap import audio_tap

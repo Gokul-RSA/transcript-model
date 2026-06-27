@@ -1,0 +1,28 @@
+{
+  "session_id": "test-sentence-fallback",
+  "timestamp": 1782536623.0037954,
+  "pyannote_segments": [
+    {
+      "start": 0.0,
+      "end": 5.0,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.0,
+      "end": 10.0,
+      "label": "Speaker_1"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "131e7f0f-c9fa-4cbf-a396-8569498b0ece",
+      "sequence_number": 0,
+      "speaker_id": "patient",
+      "transcript": "Hello doctor. I have a fever.",
+      "start_time": 8.066666666666666,
+      "end_time": 9.933333333333334
+    }
+  ]
+}

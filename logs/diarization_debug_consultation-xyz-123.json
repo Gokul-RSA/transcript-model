@@ -1,0 +1,199 @@
+{
+  "session_id": "consultation-xyz-123",
+  "timestamp": 1782545926.7063677,
+  "pyannote_segments": [
+    {
+      "start": 0.35159375000000004,
+      "end": 0.79034375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 1.16159375,
+      "end": 3.72659375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 4.90784375,
+      "end": 6.494093750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 6.949718750000001,
+      "end": 11.084093750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 11.708468750000002,
+      "end": 15.336593750000002,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 15.505343750000002,
+      "end": 15.589718750000003,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 15.589718750000003,
+      "end": 16.73721875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 17.04096875,
+      "end": 20.23034375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 20.63534375,
+      "end": 24.21284375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 24.58409375,
+      "end": 28.02659375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 28.02659375,
+      "end": 29.730968750000002,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 30.524093750000002,
+      "end": 31.13159375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 31.620968750000003,
+      "end": 35.58659375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 36.21096875,
+      "end": 39.14721875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 40.31159375,
+      "end": 43.95659375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 45.087218750000005,
+      "end": 46.150343750000005,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 46.90971875,
+      "end": 50.84159375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 51.938468750000006,
+      "end": 55.29659375000001,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 55.46534375,
+      "end": 57.760343750000004,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 58.13159375,
+      "end": 62.01284375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 62.384093750000005,
+      "end": 67.24409375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 67.75034375,
+      "end": 69.03284375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 69.03284375,
+      "end": 70.09596875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 70.90596875,
+      "end": 73.08284375000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 73.43721875,
+      "end": 78.56721875000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 79.88346875,
+      "end": 80.96346875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 80.96346875,
+      "end": 83.29221875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 83.89971875,
+      "end": 87.69659375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 88.03409375000001,
+      "end": 91.03784375000001,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 91.03784375000001,
+      "end": 92.62409375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 92.86034375000001,
+      "end": 93.21471875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 93.41721875,
+      "end": 96.67409375000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 97.34909375000001,
+      "end": 100.90971875000001,
+      "label": "Speaker_0"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "e542bca6-2d2c-42a0-84ce-80eada799f7d",
+      "sequence_number": 12,
+      "speaker_id": "doctor",
+      "transcript": "Please go ahead with the necessary tests.",
+      "start_time": 78.2,
+      "end_time": 80.93333333333334
+    },
+    {
+      "event_id": "e397e971-fcf7-45c6-9f00-918d25386d19",
+      "sequence_number": 13,
+      "speaker_id": "patient",
+      "transcript": "I want to make sure everything is okay. Thank you for your trust, Mr. Johnson. In the meantime, I recommend making some lifestyle changes to support your heart health.",
+      "start_time": 80.93333333333334,
+      "end_time": 91.86666666666666
+    },
+    {
+      "event_id": "68a31ac0-5e9c-411e-b240-c7c2209f4786",
+      "sequence_number": 14,
+      "speaker_id": "doctor",
+      "transcript": "Have you been following a balanced diet and engaging in regular exercise? I must admit, my diet hasn't been the healthiest lately, and my exercise routine is almost nonexistent.",
+      "start_time": 91.86666666666666,
+      "end_time": 103.59999999999998
+    }
+  ]
+}

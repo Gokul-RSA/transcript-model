@@ -8,6 +8,11 @@
 import threading
 from typing import Dict, List, Optional
 from app.utils.logging import logger
+from app.core.config import settings
+
+MAX_SPEAKERS = settings.DIARIZATION_MAX_SPEAKERS
+SPEAKER_LABELS = [f"Speaker_{i}" for i in range(MAX_SPEAKERS)]
+
 
 class SpeakerTimeline:
     """
@@ -41,7 +46,7 @@ class SpeakerTimeline:
             # Append the new mapped segments
             for new_seg in new_segments:
                 # Ensure we only append allowed global speaker labels (Hard Cap: Max 3)
-                if new_seg["label"] not in ["doctor", "patient", "attender"]:
+                if new_seg["label"] not in SPEAKER_LABELS:
                     continue
 
                 if new_seg["end"] <= window_start:
@@ -54,20 +59,7 @@ class SpeakerTimeline:
                 }
                 updated.append(adjusted_seg)
                 
-            # Merge adjacent segments with identical speaker labels for cleanliness
-            merged = []
-            if updated:
-                updated.sort(key=lambda x: x["start"])
-                curr = updated[0]
-                for nxt in updated[1:]:
-                    if nxt["label"] == curr["label"] and nxt["start"] <= curr["end"] + 0.05:
-                        curr["end"] = max(curr["end"], nxt["end"])
-                    else:
-                        merged.append(curr)
-                        curr = nxt
-                merged.append(curr)
-                
-            self.segments = merged
+            self.segments = self._smooth_and_filter_tiny_segments(updated)
             logger.debug(
                 "SpeakerTimeline: Timeline updated",
                 extra={"session_id": self.session_id, "segment_count": len(self.segments)}
@@ -82,27 +74,67 @@ class SpeakerTimeline:
             # Filter and ensure only allowed global speaker labels (Hard Cap: Max 3)
             filtered = []
             for seg in new_segments:
-                if seg["label"] in ["doctor", "patient", "attender"]:
+                if seg["label"] in SPEAKER_LABELS:
                     filtered.append(seg)
-            # Sort and merge adjacent identical speaker segments
-            merged = []
-            if filtered:
-                filtered.sort(key=lambda x: x["start"])
-                curr = filtered[0]
-                for nxt in filtered[1:]:
-                    if nxt["label"] == curr["label"] and nxt["start"] <= curr["end"] + 0.05:
-                        curr["end"] = max(curr["end"], nxt["end"])
-                    else:
-                        merged.append(curr)
-                        curr = nxt
-                merged.append(curr)
-            self.segments = merged
+            self.segments = self._smooth_and_filter_tiny_segments(filtered)
             logger.info(
                 "SpeakerTimeline: Timeline overwritten with global pass segments",
                 extra={"session_id": self.session_id, "segment_count": len(self.segments)}
             )
 
-    def get_speaker_for_range(self, start: float, end: float) -> str:
+    def _smooth_and_filter_tiny_segments(self, segments: List[Dict[str, any]], threshold: float = 0.5) -> List[Dict[str, any]]:
+        """
+        Filters out tiny speaker segments (duration < threshold) by merging them into neighbors.
+        Then merges adjacent segments with identical labels for cleanliness.
+        """
+        if not segments:
+            return []
+
+        # Sort segments chronologically
+        sorted_segs = sorted(segments, key=lambda x: x["start"])
+
+        # First pass: identify and smooth out any flickers (duration < threshold)
+        smoothed = []
+        for i, seg in enumerate(sorted_segs):
+            dur = seg["end"] - seg["start"]
+            seg_copy = seg.copy()
+            if dur < threshold:
+                # Find left neighbor in the already-smoothed list
+                left = smoothed[-1] if smoothed else None
+                # Find right neighbor in the remaining sorted segments
+                right = sorted_segs[i + 1] if i + 1 < len(sorted_segs) else None
+
+                if left and right:
+                    # Merge into the speaker with the larger adjacent duration to preserve identity
+                    left_dur = left["end"] - left["start"]
+                    right_dur = right["end"] - right["start"]
+                    if right_dur > left_dur:
+                        seg_copy["label"] = right["label"]
+                    else:
+                        seg_copy["label"] = left["label"]
+                elif left:
+                    seg_copy["label"] = left["label"]
+                elif right:
+                    seg_copy["label"] = right["label"]
+            smoothed.append(seg_copy)
+
+        # Second pass: merge adjacent segments sharing the same label
+        merged = []
+        if smoothed:
+            smoothed.sort(key=lambda x: x["start"])
+            curr = smoothed[0]
+            for nxt in smoothed[1:]:
+                # Merge if same speaker and close together
+                if nxt["label"] == curr["label"] and nxt["start"] <= curr["end"] + 0.1:
+                    curr["end"] = max(curr["end"], nxt["end"])
+                else:
+                    merged.append(curr)
+                    curr = nxt
+            merged.append(curr)
+
+        return merged
+
+    def get_speaker_for_range(self, start: float, end: float, return_details: bool = False) -> any:
         """
         Determines the active speaker for a time range [start, end].
         Priority Logic:
@@ -114,11 +146,12 @@ class SpeakerTimeline:
         """
         with self._lock:
             # Filter segments to enforce hard cap safety
-            valid_segs = [s for s in self.segments if s["label"] in ["doctor", "patient", "attender"]]
+            valid_segs = [s for s in self.segments if s["label"] in SPEAKER_LABELS]
             if not valid_segs:
+                if return_details:
+                    return "UNKNOWN", "No valid segments", {}
                 return "UNKNOWN"
 
-                
             # Priority 1: Overlap duration calculation
             overlaps = {}
             for seg in valid_segs:
@@ -131,6 +164,8 @@ class SpeakerTimeline:
             if overlaps:
                 best_speaker = max(overlaps, key=overlaps.get)
                 if overlaps[best_speaker] > 0.01:
+                    if return_details:
+                        return best_speaker, "Maximum overlap", {"overlaps": overlaps}
                     return best_speaker
                     
             # Priority 2: Temporal proximity calculation (find segment closest to [start, end])
@@ -143,6 +178,8 @@ class SpeakerTimeline:
             closest_speakers = [spk for spk, dist in proximity_scores.items() if dist == min_dist]
             
             if len(closest_speakers) == 1:
+                if return_details:
+                    return closest_speakers[0], "Temporal proximity", {"proximity_scores": proximity_scores}
                 return closest_speakers[0]
                 
             # Priority 3: Continuity fallback (choose segment that ended most recently before start)
@@ -153,7 +190,14 @@ class SpeakerTimeline:
                     if seg["end"] <= start and seg["end"] > latest_end_before_start:
                         latest_end_before_start = seg["end"]
                         best_spk = seg["label"]
+            if return_details:
+                return best_spk, "Continuity fallback", {
+                    "proximity_scores": proximity_scores,
+                    "latest_end_before_start": latest_end_before_start,
+                    "tied_speakers": closest_speakers
+                }
             return best_spk
+
 
 
 class SpeakerTimelineManager:

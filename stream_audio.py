@@ -71,8 +71,8 @@ async def stream_audio(file_path: str, role: str):
                 await ws.send(data)
                 frames_sent += 1
                 
-                # Sleep 50ms to match real-time recording speed
-                await asyncio.sleep(0.05)
+                # Sleep 40ms to match 1.25x real-time recording speed
+                await asyncio.sleep(0.04)
                 
                 if frames_sent % 20 == 0:
                     print(f"Sent {frames_sent} chunks...", flush=True)
@@ -82,24 +82,28 @@ async def stream_audio(file_path: str, role: str):
     except Exception as e:
         print(f"WebSocket error: {e}", file=sys.stderr, flush=True)
 
-    # Wait 1.5 seconds for final worker reconciliation and flush
-    print("\nWaiting 1.5 seconds for final STT worker flushes to settle...", flush=True)
-    await asyncio.sleep(1.5)
-
-    # Retrieve transcripts
-    print("Retrieving transcripts from backend...", flush=True)
-    try:
-        url = f"http://127.0.0.1:8000/v1/transcripts/{SESSION_ID}"
-        with urllib.request.urlopen(url) as response:
-            transcripts = json.loads(response.read().decode())
-            print(f"Fetched {len(transcripts)} transcript events successfully:", flush=True)
-            for event in transcripts:
-                role = event['role'].upper()
-                speaker = event.get('speaker_id', 'UNKNOWN')
-                print(f" - [{role} / {speaker}] [final: {event['is_final']}]: '{event['transcript']}'", flush=True)
-
-    except Exception as e:
-        print(f"Failed to retrieve transcripts: {e}", file=sys.stderr, flush=True)
+    # Retrieve transcripts (polling to accommodate slow CPU diarization)
+    print("\nRetrieving transcripts from backend...", flush=True)
+    max_attempts = 30
+    for attempt in range(1, max_attempts + 1):
+        try:
+            url = f"http://127.0.0.1:8000/v1/transcripts/{SESSION_ID}"
+            with urllib.request.urlopen(url) as response:
+                transcripts = json.loads(response.read().decode())
+                if transcripts:
+                    print(f"Fetched {len(transcripts)} transcript events successfully:", flush=True)
+                    for event in transcripts:
+                        role = event['role'].upper()
+                        speaker = event.get('speaker_id', 'UNKNOWN')
+                        print(f" - [{role} / {speaker}] [final: {event['is_final']}]: '{event['transcript']}'", flush=True)
+                    return
+        except Exception as e:
+            pass
+        
+        await asyncio.sleep(1.0)
+        print(f"Waiting for transcripts to settle (attempt {attempt}/{max_attempts})...", flush=True)
+        
+    print("Timeout waiting for transcripts from backend. Diarization might still be processing on the server.", file=sys.stderr, flush=True)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

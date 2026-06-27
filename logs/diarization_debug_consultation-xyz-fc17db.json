@@ -1,0 +1,113 @@
+{
+  "session_id": "consultation-xyz-fc17db",
+  "timestamp": 1782546975.523752,
+  "pyannote_segments": [
+    {
+      "start": 2.34284375,
+      "end": 4.35096875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.00909375,
+      "end": 6.966593750000001,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 7.472843750000001,
+      "end": 8.738468750000003,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 9.24471875,
+      "end": 10.20659375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 10.746593750000002,
+      "end": 11.82659375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 12.164093750000003,
+      "end": 13.51409375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 14.172218750000003,
+      "end": 14.661593750000002,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 14.83034375,
+      "end": 16.82159375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 17.19284375,
+      "end": 18.03659375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 18.45846875,
+      "end": 19.69034375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 19.94346875,
+      "end": 20.61846875,
+      "label": "Speaker_0"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "617c2faa-65e0-4d60-84b4-5bc17874fea6",
+      "sequence_number": 20,
+      "speaker_id": "patient",
+      "transcript": "Good morning. What's the problem?",
+      "start_time": 5.449999999999999,
+      "end_time": 7.583333333333332
+    },
+    {
+      "event_id": "e2c79108-dada-495f-b899-afd70fb72f3f",
+      "sequence_number": 21,
+      "speaker_id": "doctor",
+      "transcript": "Good morning, Doctor.",
+      "start_time": 7.583333333333332,
+      "end_time": 8.983333333333333
+    },
+    {
+      "event_id": "d71ae274-4166-4b20-8dcb-0f35adfb57b7",
+      "sequence_number": 22,
+      "speaker_id": "patient",
+      "transcript": "I have a headache.",
+      "start_time": 8.983333333333333,
+      "end_time": 10.183333333333332
+    },
+    {
+      "event_id": "e3221a14-8bf3-4886-8ed8-a9f23bc420f6",
+      "sequence_number": 23,
+      "speaker_id": "doctor",
+      "transcript": "How long have you had it?",
+      "start_time": 10.183333333333332,
+      "end_time": 11.849999999999998
+    },
+    {
+      "event_id": "f906e737-ccc7-4035-b33f-9fc500b3cd1d",
+      "sequence_number": 24,
+      "speaker_id": "patient",
+      "transcript": "For two days. Do you have a fever?",
+      "start_time": 11.849999999999998,
+      "end_time": 14.049999999999999
+    },
+    {
+      "event_id": "f0265819-950d-441b-be2a-528c55053509",
+      "sequence_number": 25,
+      "speaker_id": "doctor",
+      "transcript": "No, just headache. Okay. Take this medicine after meals. Thank you, Doctor. You'll be fine soon. Take care.",
+      "start_time": 14.049999999999999,
+      "end_time": 20.849999999999998
+    }
+  ]
+}

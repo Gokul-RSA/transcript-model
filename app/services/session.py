@@ -68,6 +68,16 @@ class SessionManager:
             if session_id not in self._sessions:
                 logger.info("Created new consultation session", extra={"session_id": session_id})
                 self._sessions[session_id] = ConsultationSession(session_id)
+                # Clear any lingering transcript bus buffer for this session ID
+                try:
+                    from app.services.transcript_bus import transcript_bus
+                    transcript_bus.clear_buffer(session_id)
+                except Exception as e:
+                    logger.error(
+                        "SessionManager: Error clearing transcript bus buffer on session creation",
+                        exc_info=True,
+                        extra={"session_id": session_id, "error": str(e)}
+                    )
             return self._sessions[session_id]
 
     async def unregister_stream(self, session_id: str, role: str) -> None:
@@ -92,8 +102,10 @@ class SessionManager:
                     try:
                         from app.services.diarization_worker import diarization_worker_manager
                         from app.services.speaker_timeline import speaker_timeline_manager
+                        from app.services.speaker_alignment import speaker_alignment_service
                         diarization_worker_manager.clear_session(session_id)
                         speaker_timeline_manager.clear_timeline(session_id)
+                        speaker_alignment_service.clear_session(session_id)
                     except Exception as e:
                         logger.error(
                             "SessionManager: Error cleaning up parallel diarization resources",

@@ -1,0 +1,121 @@
+{
+  "session_id": "consultation-xyz-2fc380",
+  "timestamp": 1782546137.7307608,
+  "pyannote_segments": [
+    {
+      "start": 1.38096875,
+      "end": 1.81971875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 2.03909375,
+      "end": 4.705343750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.920343750000001,
+      "end": 12.214718750000003,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 12.68721875,
+      "end": 15.454718750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 16.551593750000002,
+      "end": 17.715968750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 18.07034375,
+      "end": 21.141593750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 21.614093750000002,
+      "end": 25.140968750000003,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 25.57971875,
+      "end": 30.43971875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 31.53659375,
+      "end": 32.127218750000004,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 32.63346875,
+      "end": 36.49784375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 37.25721875,
+      "end": 40.142843750000004,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 41.307218750000004,
+      "end": 41.914718750000006,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 42.06659375,
+      "end": 44.74971875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 46.09971875,
+      "end": 47.095343750000005,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 47.922218750000006,
+      "end": 51.837218750000005,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 52.93409375,
+      "end": 54.03096875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 54.03096875,
+      "end": 56.08971875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 56.54534375,
+      "end": 58.705343750000004,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 59.17784375,
+      "end": 62.907218750000006,
+      "label": "Speaker_1"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "13c29d9f-01cf-4f7e-bba4-44bb5f0ede25",
+      "sequence_number": 5,
+      "speaker_id": "doctor",
+      "transcript": "Like when I'm climbing stairs or walking fast. All right. Do you have any history of heart disease in your family? Not that I'm aware of. My parents and siblings don't have any heart-related issues.",
+      "start_time": 39.91666666666667,
+      "end_time": 52.85
+    },
+    {
+      "event_id": "d91fa95e-43d2-4e54-a009-050d06357aa9",
+      "sequence_number": 6,
+      "speaker_id": "patient",
+      "transcript": "Based on your symptoms and their relation to physical activity, it's important to consider your heart health. I'd like to order an electrocardiogram, also called ECG.",
+      "start_time": 52.85,
+      "end_time": 63.85
+    }
+  ]
+}

@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     # Pyannote / Diarization Configurations
     HUGGINGFACE_TOKEN: str = ""
     DIARIZATION_MODE: str = "development"  # choices: "development", "production"
+    DIARIZATION_DEBUG: bool = False
+    # Minimum speakers expected in diarization (default to 2 for doctor-patient consultation)
+    DIARIZATION_MIN_SPEAKERS: int = 2
+    # Maximum speakers expected in diarization (default to 3)
+    DIARIZATION_MAX_SPEAKERS: int = 3
     # Rolling audio buffer kept per session (seconds)
     DIARIZATION_BUFFER_SECONDS: int = 7
     # Window fed into Pyannote on each inference cycle (seconds, must be <= DIARIZATION_BUFFER_SECONDS)
