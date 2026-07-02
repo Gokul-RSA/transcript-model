@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "paracetamol": ["paracetamol", "acetaminophen", "tylenol", "panadol", "calpol"],
+    "ibuprofen": ["ibuprofen", "advil", "motrin", "nurofen"],
+    "amlodipine": ["amlodipine", "norvasc"],
+    "metformin": ["metformin", "glucophage", "fortamet"],
+    "lisinopril": ["lisinopril", "prinivil", "zestril"],
+    "atorvastatin": ["atorvastatin", "lipitor"],
+    "albuterol": ["albuterol", "salbutamol", "proventil", "ventolin"],
+    "aspirin": ["aspirin", "ecotrin", "bayer"],
+    "clopidogrel": ["clopidogrel", "plavix"],
+    "losartan": ["losartan", "cozaar"],
+    "gabapentin": ["gabapentin", "neurontin"],
+    "omeprazole": ["omeprazole", "prilosec", "losec"],
+    "amoxicillin": ["amoxicillin", "amoxil"],
+    "levothyroxine": ["levothyroxine", "synthroid", "eltroxin"],
+    "analgesic": ["analgesic", "painkiller", "pain killers", "painkiller", "pain killer", "painkillers"]
+  }
+}

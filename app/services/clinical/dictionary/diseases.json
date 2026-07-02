@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "diabetes": ["diabetes", "diabetes mellitus", "type 2 diabetes", "type 1 diabetes", "sugar disease", "dm", "t2dm", "t1dm", "diabetic"],
+    "hypertension": ["hypertension", "high blood pressure", "htn", "hbp", "high bp"],
+    "asthma": ["asthma", "asthmatic", "bronchial asthma"],
+    "copd": ["copd", "chronic obstructive pulmonary disease"],
+    "tuberculosis": ["tuberculosis", "tb"],
+    "pneumonia": ["pneumonia"],
+    "migraine": ["migraine", "migraines", "hemicrania"],
+    "arthritis": ["arthritis", "osteoarthritis", "rheumatoid arthritis", "joint pain"],
+    "stroke": ["stroke", "cva", "cerebrovascular accident", "transient ischemic attack", "tia"],
+    "heart failure": ["heart failure", "chf", "congestive heart failure"],
+    "kidney disease": ["kidney disease", "ckd", "chronic kidney disease", "renal failure"],
+    "thyroid disease": ["thyroid disease", "hypothyroidism", "hyperthyroidism", "goiter"],
+    "covid-19": ["covid-19", "covid", "coronavirus", "sars-cov-2"],
+    "dengue": ["dengue", "dengue fever"],
+    "malaria": ["malaria"],
+    "coronary artery disease": ["coronary artery disease", "cad", "heart disease", "myocardial infarction", "mi", "heart attack"],
+    "infection": ["infection", "infections", "infectious"]
+  }
+}

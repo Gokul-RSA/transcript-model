@@ -12,6 +12,12 @@ class MedicationEntity(BaseModel):
     name: str
     present: bool = True
     confidence: float = 1.0
+    dosage: Optional[str] = None
+    frequency: Optional[str] = None
+    duration: Optional[str] = None
+    route: Optional[str] = None
+    instructions: Optional[str] = None
+    prn: bool = False
 
 class DiagnosisEntity(BaseModel):
     name: str

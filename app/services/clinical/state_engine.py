@@ -7,6 +7,7 @@ from app.services.clinical.models import ClinicalState, PatientInfo, VitalSigns,
 from app.services.providers.models import TranscriptEvent
 from app.services.transcript_bus import transcript_bus
 from app.utils.logging import logger
+from app.services.clinical.extractors import NameExtractor, VitalsExtractor, context_manager
 
 class ClinicalStateEngine:
     def __init__(self):
@@ -15,6 +16,8 @@ class ClinicalStateEngine:
         self._metadata: Dict[str, Dict[str, Any]] = {}
         self._lock = RLock()
         self.pipeline = ClinicalProcessingPipeline()
+        self.name_extractor = NameExtractor()
+        self.vitals_extractor = VitalsExtractor()
         
         # Subscribe to transcript bus events
         transcript_bus.subscribe(self.on_transcript_event)
@@ -33,6 +36,7 @@ class ClinicalStateEngine:
             self._states.pop(session_id, None)
             self._provenance.pop(session_id, None)
             self._metadata.pop(session_id, None)
+            context_manager.clear_session(session_id)
             logger.info("ClinicalStateEngine: Cleared state", extra={"session_id": session_id})
 
     def get_provenance(self, session_id: str) -> Dict[str, Any]:
@@ -200,13 +204,10 @@ class ClinicalStateEngine:
                 state.patient_info.gender = "Female"
                 self._record_provenance(event.session_id, "patient_info.gender", event, state.version)
 
-            name_match = re.search(r'\b(?:my name is|i am|called|this is|name is)\s*([A-Z][a-z]+)\b', text)
-            if not name_match:
-                name_match = re.search(r'\b((?:mr\.|mrs\.|ms\.|dr\.)\s*[A-Z][a-z]+)\b', text, re.IGNORECASE)
-            if not name_match:
-                name_match = re.search(r'\b(?:hello|hi|morning|good morning|afternoon|evening)\s*,?\s*((?:mr\.|mrs\.|ms\.)?\s*[A-Z][a-z]+)\b', text, re.IGNORECASE)
-            if name_match:
-                state.patient_info.patient_name = name_match.group(1).strip()
+            # Use NameExtractor
+            extracted_name = self.name_extractor.extract_name(text, speaker_id=speaker_id)
+            if extracted_name:
+                state.patient_info.patient_name = extracted_name
                 self._record_provenance(event.session_id, "patient_info.patient_name", event, state.version)
 
             # 2. Chief Complaint
@@ -244,14 +245,18 @@ class ClinicalStateEngine:
                         existing["status"] = "Active"
                         existing["confidence"] = conf_str
                         existing["present"] = "True"
+                        existing["updated_at"] = str(event.timestamp)
                     else:
+                        existing_id = f"symptom_{len(state.symptoms) + 1}"
                         state.symptoms.append({
+                            "entity_id": existing_id,
                             "name": sym.name,
                             "severity": sym.severity,
                             "duration": sym.duration,
                             "status": "Active",
                             "confidence": conf_str,
-                            "present": "True"
+                            "present": "True",
+                            "updated_at": str(event.timestamp)
                         })
                     self._record_provenance(event.session_id, f"symptoms.{sym.name.lower()}", event, state.version)
                 else:
@@ -263,39 +268,61 @@ class ClinicalStateEngine:
                         existing["status"] = status_val
                         existing["present"] = "False"
                         existing["confidence"] = conf_str
+                        existing["updated_at"] = str(event.timestamp)
                     else:
+                        existing_id = f"symptom_{len(state.symptoms) + 1}"
                         state.symptoms.append({
+                            "entity_id": existing_id,
                             "name": sym.name,
                             "severity": sym.severity,
                             "duration": sym.duration,
                             "status": status_val,
                             "confidence": conf_str,
-                            "present": "False"
+                            "present": "False",
+                            "updated_at": str(event.timestamp)
                         })
                     self._record_provenance(event.session_id, f"symptoms.{sym.name.lower()}", event, state.version)
 
             # Conversational Context Modifier Association
             if not result.symptoms and state.symptoms:
-                last_sym = None
-                for s in reversed(state.symptoms):
-                    if s.get("status") == "Active":
-                        last_sym = s
-                        break
-                if not last_sym:
-                    last_sym = state.symptoms[-1]
-                
-                # Check for duration match
-                detected_durs = self.pipeline.extractor._detect_durations(text)
-                if detected_durs:
-                    last_sym["duration"] = detected_durs[0]["value"]
-                    self._record_provenance(event.session_id, f"symptoms.{last_sym['name'].lower()}", event, state.version)
-                    
-                # Check for severity match
-                for term in self.pipeline.extractor.severity_terms:
+                # Find if there is duration / severity
+                detected_durs = self.pipeline.extractor.symptom_extractor._detect_durations(text)
+                detected_sevs = []
+                for term in self.pipeline.extractor.symptom_extractor.severity_terms:
                     if re.search(r'\b' + re.escape(term) + r'\b', text_lower):
-                        last_sym["severity"] = term
-                        self._record_provenance(event.session_id, f"symptoms.{last_sym['name'].lower()}", event, state.version)
-                        break
+                        detected_sevs.append(term)
+                        
+                # Check pronoun resolution ("it", "they", "this", "that") in text
+                pronoun_match = re.search(r'\b(it|they|this|that)\b', text_lower)
+                
+                # Query context manager for active target
+                target = None
+                if pronoun_match:
+                    pronoun_resolved = context_manager.resolve_pronoun(event.session_id, pronoun_match.group(1), event.timestamp)
+                    if pronoun_resolved and pronoun_resolved["entity_type"] == "symptom":
+                        target = next((s for s in state.symptoms if s["name"].lower() == pronoun_resolved["name"].lower()), None)
+                
+                # Run ambiguity detection if target not resolved
+                if not target and (detected_durs or detected_sevs):
+                    target_candidate = context_manager.get_modifier_target(event.session_id, "symptom", event.timestamp)
+                    if target_candidate == "Needs clarification":
+                        # Ambiguity detected: update all active symptoms in state
+                        active_syms = [s for s in state.symptoms if s["status"] == "Active"]
+                        for s in active_syms:
+                            if detected_durs:
+                                s["duration"] = "Needs clarification"
+                            if detected_sevs:
+                                s["severity"] = "Needs clarification"
+                    elif isinstance(target_candidate, dict):
+                        target = next((s for s in state.symptoms if s["name"].lower() == target_candidate["name"].lower()), None)
+                
+                if target:
+                    if detected_durs:
+                        target["duration"] = detected_durs[0]["value"]
+                    if detected_sevs:
+                        target["severity"] = detected_sevs[0]
+                    target["updated_at"] = str(event.timestamp)
+                    self._record_provenance(event.session_id, f"symptoms.{target['name'].lower()}", event, state.version)
 
             # 4. Duration (Overall/Chief complaint duration)
             for sym in result.symptoms:
@@ -363,37 +390,19 @@ class ClinicalStateEngine:
                 if allergy not in ["none", "no", "nah"] and allergy not in state.allergies:
                     state.allergies.append(allergy)
                     self._record_provenance(event.session_id, f"allergies.{allergy.lower()}", event, state.version)
+            
+            # NKDA checking
+            if "nkda" in text_lower or "no known allergies" in text_lower:
+                if "NKDA" not in state.allergies:
+                    state.allergies.append("NKDA")
+                    self._record_provenance(event.session_id, "allergies.nkda", event, state.version)
 
             # 9. Vital Signs
-            bp_match = re.search(r'\b(?:bp|blood\s+pressure)\s*(?:is|of)?\s*(\d{2,3}\s*/\s*\d{2,3})\b', text_lower)
-            if bp_match:
-                state.vital_signs.bp = bp_match.group(1).replace(" ", "")
-                self._record_provenance(event.session_id, "vital_signs.bp", event, state.version)
-
-            pulse_match = re.search(r'\b(?:pulse|heart\s+rate|hr)\s*(?:is|of)?\s*(\d{2,3})\b', text_lower)
-            if pulse_match:
-                state.vital_signs.pulse = pulse_match.group(1)
-                self._record_provenance(event.session_id, "vital_signs.pulse", event, state.version)
-
-            temp_match = re.search(r'\b(?:temp|temperature)\s*(?:is|of)?\s*(\d{2,3}(?:\.\d)?)\s*(?:f|c|degrees)?\b', text_lower)
-            if temp_match:
-                state.vital_signs.temperature = temp_match.group(1)
-                self._record_provenance(event.session_id, "vital_signs.temperature", event, state.version)
-
-            spo2_match = re.search(r'\b(?:spo2|oxygen|saturation|o2\s+sat)\s*(?:is|of)?\s*(\d{2,3})\s*%?\b', text_lower)
-            if spo2_match:
-                state.vital_signs.spo2 = spo2_match.group(1)
-                self._record_provenance(event.session_id, "vital_signs.spo2", event, state.version)
-
-            weight_match = re.search(r'\b(?:weight|weighs?)\s*(?:is|of)?\s*(\d{2,3})\s*(?:kg|lbs|pounds)?\b', text_lower)
-            if weight_match:
-                state.vital_signs.weight = weight_match.group(1)
-                self._record_provenance(event.session_id, "vital_signs.weight", event, state.version)
-
-            height_match = re.search(r'\b(?:height|tall)\s*(?:is|of)?\s*(\d(?:\'\d{1,2}\"?)?)\b', text_lower)
-            if height_match:
-                state.vital_signs.height = height_match.group(1)
-                self._record_provenance(event.session_id, "vital_signs.height", event, state.version)
+            vitals = self.vitals_extractor.extract_vitals(text)
+            for k, v in vitals.items():
+                if v:
+                    setattr(state.vital_signs, k, v)
+                    self._record_provenance(event.session_id, f"vital_signs.{k}", event, state.version)
 
             # 10. Diagnosis (Tentative)
             tentative_match = re.findall(r'\b(?:rule out|r/o|could be|diagnose|neurological causes|migraine)\s+([a-zA-Z\s]+?)(?:\b|and|or|\.)', text_lower)
@@ -419,68 +428,35 @@ class ClinicalStateEngine:
                         self._record_provenance(event.session_id, f"diagnosis_tentative.{diag.name.lower()}", event, state.version)
 
             # 11. Treatment Plan (Medicines, Investigations, Advice)
-            # Medicines prescriptions from doctor
             if speaker_id == "doctor":
                 for med in result.medications:
                     med_name = med.name.capitalize()
                     
                     if med.present:
-                        # Detailed Medication Parsing
-                        med_sentence = ""
-                        for sentence in re.split(r'[.!?\n]', text):
-                            if med.name.lower() in sentence.lower():
-                                med_sentence = sentence.strip()
-                                break
-                        
-                        med_sentence_lower = med_sentence.lower()
-                        
-                        # Dosage
-                        dose_match = re.search(r'\b(\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|tablets?|capsules?|pills?))\b', med_sentence_lower)
-                        dosage = dose_match.group(1) if dose_match else None
-                        
-                        # Frequency
-                        freq_match = re.search(r'\b(twice daily|twice a day|three times a day|three times daily|four times a day|once daily|daily|every other day|regularly|at bedtime|before bedtime)\b', med_sentence_lower)
-                        frequency = freq_match.group(1).capitalize() if freq_match else None
-                        
-                        # Duration
-                        dur_match = re.search(r'\b(?:for)?\s*(\d+|one|two|three|four|five|six|seven|eight|nine|ten|several|a\s+few)\s*(?:day|week|month)s?\b', med_sentence_lower)
-                        duration = dur_match.group(0).strip() if dur_match else None
-                        if duration and duration.lower().startswith("for "):
-                            duration = duration[4:]
-                        
-                        # Route
-                        route_match = re.search(r'\b(by mouth|oral|orally|intravenous|subcutaneous|topical|iv|im|po)\b', med_sentence_lower)
-                        route = route_match.group(1).capitalize() if route_match else None
-                        
-                        # Instructions
-                        inst_match = re.search(r'\b(after meals|before meals|with food|on an empty stomach|after food|before food|with meals)\b', med_sentence_lower)
-                        instructions = inst_match.group(1).capitalize() if inst_match else None
-                        
-                        # PRN
-                        prn = any(prn_term in med_sentence_lower for prn_term in ["prn", "as needed", "if needed", "when required", "when necessary"])
-                        
                         existing = None
                         for m in state.treatment_plan.medicines:
                             if m["name"].lower() == med_name.lower():
                                 existing = m
                                 break
                         
+                        prn_str = "True" if med.prn else "False"
+                        
                         if existing:
-                            if dosage: existing["dosage"] = dosage
-                            if frequency: existing["frequency"] = frequency
-                            if duration: existing["duration"] = duration
-                            if route: existing["route"] = route
-                            if instructions: existing["instructions"] = instructions
-                            existing["prn"] = str(prn)
+                            if med.dosage: existing["dosage"] = med.dosage
+                            if med.frequency: existing["frequency"] = med.frequency
+                            if med.duration: existing["duration"] = med.duration
+                            if med.route: existing["route"] = med.route
+                            if med.instructions: existing["instructions"] = med.instructions
+                            existing["prn"] = prn_str
                         else:
                             state.treatment_plan.medicines.append({
                                 "name": med_name,
-                                "dosage": dosage,
-                                "frequency": frequency,
-                                "duration": duration,
-                                "route": route,
-                                "instructions": instructions,
-                                "prn": str(prn)
+                                "dosage": med.dosage,
+                                "frequency": med.frequency,
+                                "duration": med.duration,
+                                "route": med.route,
+                                "instructions": med.instructions,
+                                "prn": prn_str
                             })
                         self._record_provenance(event.session_id, f"treatment_plan.medicines.{med.name.lower()}", event, state.version)
                     else:
@@ -530,6 +506,10 @@ class ClinicalStateEngine:
                         if clean_sentence and clean_sentence not in state.follow_up:
                             state.follow_up.append(clean_sentence)
                             self._record_provenance(event.session_id, f"follow_up.{len(state.follow_up)-1}", event, state.version)
+
+            # Update context manager turns
+            current_section = self.pipeline.extractor.section_detector.detect_section(event.session_id, text, speaker_id)
+            context_manager.update_turns(event.session_id, current_section)
 
             # Versioning and Significant Change triggers check
             new_state_dump = state.model_dump()

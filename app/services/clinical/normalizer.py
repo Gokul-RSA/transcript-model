@@ -1,47 +1,40 @@
 import re
+from app.services.clinical.dictionary.loader import dictionary_manager
 
 class ClinicalNormalizer:
     def __init__(self):
-        # Mappings of colloquial layman/descriptive terms to canonical terms.
-        # We use regex with word boundaries and support flexible spacing and hyphens.
-        self.mappings = {
-            # Headache variations (e.g. "head ache", "headaches")
-            r"\bhead\s+ache\b": "headache",
-            r"\bheadaches\b": "headache",
-            r"\bhead\s+(?:is\s+|has\s+been\s+|was\s+)?pounding\b": "headache",
-            r"\bpounding\s+head\b": "headache",
-            r"\bhead\s+pain\b": "headache",
-            r"\bpain\s+in\s+(?:the\s+)?head\b": "headache",
-            
-            # Dizziness variations (e.g. "dizzy", "light-headed")
-            r"\bdizzy\b": "dizziness",
-            r"\blight\s*-?\s*headed\b": "dizziness",
-            r"\broom\s+is\s+spinning\b": "dizziness",
-            
-            # Nausea and vomiting variations (e.g. "nauseous", "throwing up", "vomited")
-            r"\bnauseous\b": "nausea",
-            r"\bthrowing\s*-?\s*up\b": "nausea",
-            r"\bsick\s+to\s+my\s+stomach\b": "nausea",
-            r"\bvomited\b": "vomiting",
-            r"\bvomiting\b": "vomiting",
-            
-            # Shortness of breath variations
-            r"\bdifficulty\s+breathing\b": "shortness of breath",
-            r"\bbreathless\b": "shortness of breath",
-            
-            # Plurals and general variations
-            r"\bfevers\b": "fever",
-            r"\bcoughs\b": "cough",
-            r"\bmigraines\b": "migraine",
-            r"\binfections\b": "infection",
-            
-            # General mappings
-            r"\bhigh\s+blood\s+pressure\b": "hypertension",
-            r"\bblood\s+sugar\s+problem\b": "diabetes",
-            r"\bpain\s*-?\s*killers?\b": "analgesic",
-            r"\bpain\s+in\s+(?:my\s+|the\s+)?chest\b": "chest pain",
-            r"\bchest\s+pains\b": "chest pain"
-        }
+        self.mappings = {}
+        self._build_mappings()
+
+    def _build_mappings(self):
+        # 1. Load from symptoms dictionary
+        symptoms = dictionary_manager.get_symptoms()
+        for canonical, synonyms in symptoms.items():
+            for syn in synonyms:
+                if syn.lower() != canonical.lower():
+                    # Create word boundary pattern (handling variable spacing/hyphens)
+                    escaped = re.escape(syn)
+                    # Normalize spaces/hyphens in regex
+                    pattern_str = r'\b' + re.sub(r'\\\s+|\\-', lambda m: r'\s*-?\s*', escaped) + r'\b'
+                    self.mappings[pattern_str] = canonical
+
+        # 2. Load from diseases dictionary
+        diseases = dictionary_manager.get_diseases()
+        for canonical, synonyms in diseases.items():
+            for syn in synonyms:
+                if syn.lower() != canonical.lower():
+                    escaped = re.escape(syn)
+                    pattern_str = r'\b' + re.sub(r'\\\s+|\\-', lambda m: r'\s*-?\s*', escaped) + r'\b'
+                    self.mappings[pattern_str] = canonical
+
+        # 3. Load from drug dictionary (brand-to-generic and colloquial painkiller terms)
+        drugs = dictionary_manager.get_drugs()
+        for canonical, synonyms in drugs.items():
+            for syn in synonyms:
+                if syn.lower() != canonical.lower():
+                    escaped = re.escape(syn)
+                    pattern_str = r'\b' + re.sub(r'\\\s+|\\-', lambda m: r'\s*-?\s*', escaped) + r'\b'
+                    self.mappings[pattern_str] = canonical
 
     def normalize(self, text: str) -> str:
         """
@@ -51,8 +44,22 @@ class ClinicalNormalizer:
         if not text:
             return ""
         
+        # We process replacements case-sensitively or preserve case if possible,
+        # but standard is lowercased canonical output.
+        # To maintain the case preservation requirement from existing tests:
+        # e.g., "High blood pressure" -> "Hypertension"
+        # We can implement a smart case-preserving replacement helper.
         normalized_text = text
-        for pattern, replacement in self.mappings.items():
-            normalized_text = re.sub(pattern, replacement, normalized_text, flags=re.IGNORECASE)
+        for pattern_str, replacement in self.mappings.items():
+            def case_preserve_replace(match):
+                matched_text = match.group(0)
+                if matched_text.isupper():
+                    return replacement.upper()
+                if matched_text[0].isupper():
+                    # Title case the canonical term
+                    return ' '.join(w.capitalize() for w in replacement.split(' '))
+                return replacement
+
+            normalized_text = re.sub(pattern_str, case_preserve_replace, normalized_text, flags=re.IGNORECASE)
         
         return normalized_text

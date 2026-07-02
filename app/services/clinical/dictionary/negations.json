@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "pre_negation": ["no", "not", "denies", "deny", "denied", "without", "never", "negative", "don", "doesn", "didn", "haven", "hadn", "wasn", "weren", "isn", "aren", "won", "wouldn", "shouldn", "couldn", "does", "exclude", "excluded", "free", "stopped", "quit", "ceased", "former", "ex"],
+    "post_negation": ["negative", "ruled", "resolved", "absent", "gone", "cleared", "cured", "disappeared", "stopped", "no longer"]
+  }
+}

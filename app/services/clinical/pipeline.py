@@ -25,8 +25,13 @@ class ClinicalProcessingPipeline:
         # 1. Normalize
         normalized_transcript = self.normalizer.normalize(transcript)
 
-        # 2. Extract (passing speaker_id to handle clinician question filtering)
-        extraction_results = self.extractor.extract(normalized_transcript, speaker_id=speaker_id)
+        # 2. Extract (passing speaker_id, session_id, and timestamp)
+        extraction_results = self.extractor.extract(
+            normalized_transcript, 
+            speaker_id=speaker_id,
+            session_id=session_id,
+            timestamp=timestamp
+        )
 
         # 3. Construct and return result model
         return ClinicalExtractionResult(

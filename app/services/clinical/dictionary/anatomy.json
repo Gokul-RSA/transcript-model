@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "head": ["head", "forehead", "temple", "temples"],
+    "chest": ["chest", "breast", "sternum"],
+    "heart": ["heart", "cardiac"],
+    "stomach": ["stomach", "abdomen", "belly", "gut", "tummy"],
+    "back": ["back", "lower back", "upper back", "spine"],
+    "arm": ["arm", "left arm", "right arm", "shoulder", "hand", "finger", "fingers"],
+    "leg": ["leg", "foot", "feet", "knee", "thigh"],
+    "throat": ["throat", "neck"],
+    "eye": ["eye", "eyes"],
+    "ear": ["ear", "ears"]
+  }
+}

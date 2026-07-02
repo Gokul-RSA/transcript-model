@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "mother": ["mother", "mom", "mommy", "mother's", "mom's"],
+    "father": ["father", "dad", "daddy", "father's", "dad's"],
+    "parent": ["parent", "parents", "parent's", "parents'"],
+    "brother": ["brother", "brother's", "bro"],
+    "sister": ["sister", "sister's", "sis"],
+    "sibling": ["sibling", "siblings"],
+    "family": ["family", "family history"]
+  }
+}

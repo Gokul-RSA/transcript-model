@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "CBC": ["cbc", "complete blood count", "blood count"],
+    "MRI": ["mri", "magnetic resonance imaging"],
+    "CT scan": ["ct scan", "ct", "computed tomography", "cat scan"],
+    "X-ray": ["x-ray", "xray", "radiograph"],
+    "ECG": ["ecg", "ekg", "electrocardiogram"],
+    "Blood test": ["blood test", "blood tests", "blood work", "blood draw"],
+    "Urine test": ["urine test", "urine tests", "urinalysis", "ua"],
+    "HbA1c": ["hba1c", "a1c", "glycated hemoglobin"],
+    "Lipid profile": ["lipid profile", "cholesterol test", "lipid panel"],
+    "LFT": ["lft", "liver function test", "liver function tests", "liver panel"],
+    "KFT": ["kft", "kidney function test", "kidney function tests", "kidney panel", "rft", "renal function test"],
+    "Ultrasound": ["ultrasound", "us", "sonography", "sonogram"]
+  }
+}

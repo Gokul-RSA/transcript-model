@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-30",
+  "entries": {
+    "headache": [
+      "headache", "head ache", "headaches", "head pounding", "pounding head", 
+      "head pain", "pain in head", "pounding in head", "head has been pounding", 
+      "head is pounding", "head was pounding"
+    ],
+    "fever": ["fever", "fevers", "high temperature", "running a temperature", "chills", "feeling hot"],
+    "cough": ["cough", "coughs", "coughing", "coughing up", "coughing fits"],
+    "dizziness": ["dizziness", "dizzy", "lightheaded", "light-headed", "room spinning", "spinning sensation"],
+    "nausea": [
+      "nausea", "nauseous", "sick to my stomach", "feeling sick", "nauseated", 
+      "throwing up", "threw up", "throwing-up"
+    ],
+    "vomiting": ["vomiting", "vomit", "vomited", "heaving"],
+    "fatigue": ["fatigue", "fatigued", "tiredness", "exhaustion", "exhausted", "feeling weak", "weakness", "lethargic", "lethargy"],
+    "chest pain": [
+      "chest pain", "chest pains", "pain in chest", "pain over chest", "tightness in chest", 
+      "pressure in chest", "chest discomfort", "heaviness in chest", "pain in my chest", 
+      "pain in the chest"
+    ],
+    "shortness of breath": ["shortness of breath", "short of breath", "difficulty breathing", "breathless", "cannot breathe", "trouble breathing", "hard to breathe"]
+  }
+}
