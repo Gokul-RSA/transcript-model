@@ -1,0 +1,479 @@
+# =========================================================
+# investigations.yaml — Investigation recommendations
+# =========================================================
+# Schema:
+#   id             : unique identifier
+#   name           : display name
+#   category       : lab | imaging | cardiac | microbiology | other
+#   priority       : URGENT | HIGH | ROUTINE
+#   for_diseases   : list of disease IDs this applies to
+#   triggers       : conditions that elevate priority to URGENT
+#   rationale      : explanation text
+# =========================================================
+
+# ── Cardiac ──────────────────────────────────────────────
+
+- id: ecg_12lead
+  name: 12-Lead ECG
+  category: cardiac
+  priority: URGENT
+  for_diseases:
+    - acs
+    - unstable_angina
+    - heart_failure
+    - hypertensive_crisis
+    - panic_attack
+    - pulmonary_embolism
+  triggers:
+    - acs_red_flag
+    - stemi_red_flag
+    - hypertensive_crisis_red_flag
+  rationale: >
+    Essential for detecting ST-segment changes, arrhythmias, LVH, and
+    right heart strain in suspected ACS, PE, or hypertensive emergency.
+
+- id: troponin
+  name: Serial Troponin (T0 / T3h / T6h)
+  category: lab
+  priority: URGENT
+  for_diseases:
+    - acs
+    - unstable_angina
+    - heart_failure
+    - pulmonary_embolism
+  triggers:
+    - acs_red_flag
+    - stemi_red_flag
+  rationale: >
+    High-sensitivity troponin is the biomarker of choice for myocardial
+    injury detection. Serial testing rules in or out NSTEMI.
+
+- id: bnp_nt_probnp
+  name: BNP / NT-proBNP
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - heart_failure
+    - pulmonary_embolism
+  triggers:
+    - respiratory_failure_red_flag
+  rationale: Natriuretic peptides confirm cardiac decompensation in heart failure.
+
+- id: echo_2d
+  name: Echocardiogram (2D Echo)
+  category: cardiac
+  priority: HIGH
+  for_diseases:
+    - heart_failure
+    - acs
+    - pulmonary_embolism
+    - hypertensive_crisis
+  rationale: >
+    Assesses left ventricular function, wall motion abnormalities,
+    pericardial effusion, and right heart strain.
+
+# ── Haematology / Biochemistry ───────────────────────────
+
+- id: cbc
+  name: Full Blood Count (CBC / FBC)
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - sepsis
+    - pneumonia
+    - appendicitis
+    - cholecystitis
+    - pancreatitis
+    - pyelonephritis
+    - uti
+    - meningitis
+    - anaphylaxis
+  triggers:
+    - sepsis_red_flag
+  rationale: >
+    WBC differentiates infectious vs. non-infectious pathology;
+    haemoglobin quantifies anaemia; platelets flag DIC risk.
+
+- id: crp_esr
+  name: CRP / ESR
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - sepsis
+    - pneumonia
+    - appendicitis
+    - cholecystitis
+    - pancreatitis
+    - meningitis
+    - dvt
+  triggers:
+    - sepsis_red_flag
+  rationale: Inflammatory markers confirm infective or inflammatory aetiology.
+
+- id: lft_lfts
+  name: Liver Function Tests (LFTs)
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - cholecystitis
+    - pancreatitis
+    - heart_failure
+  rationale: Assesses hepatic congestion, biliary obstruction, and hepatocellular injury.
+
+- id: renal_function
+  name: Renal Function / Electrolytes (U&E / CMP)
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - sepsis
+    - hypertensive_crisis
+    - heart_failure
+    - pancreatitis
+    - pyelonephritis
+    - anaphylaxis
+  triggers:
+    - sepsis_red_flag
+    - hypertensive_crisis_red_flag
+  rationale: Identifies AKI, electrolyte imbalances, and guides IV fluid therapy.
+
+- id: blood_glucose
+  name: Blood Glucose (Random / Fasting)
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - type2_diabetes
+    - sepsis
+    - pancreatitis
+  rationale: Confirms hyperglycaemia in suspected diabetes; monitors for DKA in sepsis.
+
+- id: hba1c
+  name: HbA1c
+  category: lab
+  priority: ROUTINE
+  for_diseases:
+    - type2_diabetes
+  rationale: Confirms chronic glycaemic control; required for DM diagnosis and monitoring.
+
+- id: thyroid_function
+  name: Thyroid Function Tests (TFTs / TSH / Free T4)
+  category: lab
+  priority: ROUTINE
+  for_diseases:
+    - hypothyroidism
+    - heart_failure
+    - anxiety_disorder
+  rationale: TSH and free T4 confirm hypothyroidism or thyrotoxicosis.
+
+- id: lipid_profile
+  name: Fasting Lipid Profile
+  category: lab
+  priority: ROUTINE
+  for_diseases:
+    - acs
+    - unstable_angina
+    - ischemic_stroke
+    - type2_diabetes
+  rationale: Quantifies cardiovascular risk; guides statin therapy initiation.
+
+- id: serum_amylase_lipase
+  name: Serum Amylase / Lipase
+  category: lab
+  priority: URGENT
+  for_diseases:
+    - pancreatitis
+  rationale: Lipase > 3x ULN is diagnostic for acute pancreatitis.
+
+- id: lactate
+  name: Serum Lactate
+  category: lab
+  priority: URGENT
+  for_diseases:
+    - sepsis
+    - anaphylaxis
+  triggers:
+    - sepsis_red_flag
+    - anaphylaxis_red_flag
+  rationale: Lactate ≥ 2 mmol/L indicates tissue hypoperfusion; ≥ 4 suggests septic shock.
+
+- id: blood_cultures
+  name: Blood Cultures (x2 sets)
+  category: microbiology
+  priority: URGENT
+  for_diseases:
+    - sepsis
+    - pyelonephritis
+    - pneumonia
+    - meningitis
+  triggers:
+    - sepsis_red_flag
+  rationale: >
+    Must be drawn before antibiotic administration to identify causative organism
+    and guide de-escalation.
+
+- id: urinalysis_mcs
+  name: Urinalysis + Urine MCS
+  category: microbiology
+  priority: HIGH
+  for_diseases:
+    - uti
+    - pyelonephritis
+    - sepsis
+  rationale: Dipstick and culture confirms UTI/pyelonephritis; guides antibiotic choice.
+
+- id: d_dimer
+  name: D-Dimer
+  category: lab
+  priority: URGENT
+  for_diseases:
+    - pulmonary_embolism
+    - dvt
+  triggers:
+    - respiratory_failure_red_flag
+  rationale: >
+    Highly sensitive (but not specific) for thrombosis. A negative result
+    effectively rules out PE in low/moderate pre-test probability.
+
+- id: procalcitonin
+  name: Procalcitonin (PCT)
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - sepsis
+    - pneumonia
+  triggers:
+    - sepsis_red_flag
+  rationale: PCT differentiates bacterial infection from other inflammatory causes.
+
+- id: coagulation_screen
+  name: Coagulation Screen (PT / INR / APTT)
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - sepsis
+    - pulmonary_embolism
+    - dvt
+  triggers:
+    - sepsis_red_flag
+  rationale: Detects DIC in sepsis; baseline before anticoagulation in PE/DVT.
+
+- id: abg
+  name: Arterial Blood Gas (ABG)
+  category: lab
+  priority: URGENT
+  for_diseases:
+    - sepsis
+    - pulmonary_embolism
+    - copd_exacerbation
+    - asthma_attack
+    - pneumonia
+  triggers:
+    - respiratory_failure_red_flag
+    - sepsis_red_flag
+  rationale: >
+    Provides pO2, pCO2, pH, HCO3 — critical for respiratory failure assessment,
+    acid-base disturbances, and lactate in sepsis.
+
+# ── Imaging ──────────────────────────────────────────────
+
+- id: cxr
+  name: Chest X-Ray (PA/AP)
+  category: imaging
+  priority: HIGH
+  for_diseases:
+    - pneumonia
+    - heart_failure
+    - pulmonary_embolism
+    - copd_exacerbation
+    - asthma_attack
+    - acs
+  triggers:
+    - respiratory_failure_red_flag
+  rationale: >
+    Identifies consolidation, cardiomegaly, pulmonary oedema,
+    pneumothorax, and effusion.
+
+- id: ct_brain
+  name: CT Brain (Non-Contrast)
+  category: imaging
+  priority: URGENT
+  for_diseases:
+    - ischemic_stroke
+    - meningitis
+    - hypertensive_crisis
+  triggers:
+    - stroke_red_flag
+    - hypertensive_crisis_red_flag
+  rationale: >
+    Rules out haemorrhagic stroke before thrombolysis. Target: within
+    25 minutes of stroke code activation.
+
+- id: ct_pulmonary_angiogram
+  name: CTPA (CT Pulmonary Angiogram)
+  category: imaging
+  priority: URGENT
+  for_diseases:
+    - pulmonary_embolism
+  triggers:
+    - respiratory_failure_red_flag
+  rationale: Gold standard for PE confirmation. Initiated when D-dimer positive and clinical suspicion high.
+
+- id: ct_abdomen_pelvis
+  name: CT Abdomen & Pelvis (with contrast)
+  category: imaging
+  priority: HIGH
+  for_diseases:
+    - appendicitis
+    - cholecystitis
+    - pancreatitis
+    - pyelonephritis
+  rationale: Confirms abdominal pathology, identifies complications such as perforation.
+
+- id: abdo_ultrasound
+  name: Abdominal Ultrasound
+  category: imaging
+  priority: HIGH
+  for_diseases:
+    - cholecystitis
+    - pancreatitis
+    - appendicitis
+    - pyelonephritis
+  rationale: First-line imaging for gallstones, biliary dilation, renal calculi.
+
+- id: doppler_us_leg
+  name: Doppler Ultrasound — Lower Limb
+  category: imaging
+  priority: HIGH
+  for_diseases:
+    - dvt
+    - pulmonary_embolism
+  rationale: Confirms or excludes DVT; positive USS mandates anticoagulation.
+
+- id: mri_brain
+  name: MRI Brain (DWI)
+  category: imaging
+  priority: HIGH
+  for_diseases:
+    - ischemic_stroke
+    - meningitis
+    - migraine
+  rationale: >
+    DWI sequence detects acute ischaemic change within minutes of onset
+    where CT is equivocal. Superior sensitivity for posterior fossa lesions.
+
+- id: mri_spine
+  name: MRI Spine
+  category: imaging
+  priority: ROUTINE
+  for_diseases:
+    - tension_headache
+  rationale: Exclude spinal pathology contributing to cervicogenic headache.
+
+# ── Endoscopy / Specialist ────────────────────────────────
+
+- id: oesophagogastroduodenoscopy
+  name: Oesophagogastroduodenoscopy (OGD / Endoscopy)
+  category: other
+  priority: HIGH
+  for_diseases:
+    - gerd
+    - peptic_ulcer
+  rationale: >
+    Visualises oesophageal, gastric, and duodenal mucosa; biopsies
+    for H. pylori and malignancy; therapeutic haemostasis if bleeding.
+
+- id: h_pylori_test
+  name: H. pylori Testing (Urea Breath Test / Stool Antigen / Biopsy)
+  category: microbiology
+  priority: HIGH
+  for_diseases:
+    - peptic_ulcer
+    - gerd
+  rationale: H. pylori eradication mandatory in PUD; positive test changes management.
+
+- id: lumbar_puncture
+  name: Lumbar Puncture (CSF Analysis)
+  category: other
+  priority: URGENT
+  for_diseases:
+    - meningitis
+  triggers:
+    - sepsis_red_flag
+  rationale: >
+    CSF microscopy, culture, glucose, protein, and opening pressure
+    confirm bacterial/viral meningitis. Must follow CT brain to exclude RICP.
+
+- id: pulmonary_function_tests
+  name: Pulmonary Function Tests (Spirometry / PFTs)
+  category: other
+  priority: ROUTINE
+  for_diseases:
+    - copd_exacerbation
+    - asthma_attack
+  rationale: >
+    Confirms obstructive pattern (FEV1/FVC < 0.7 in COPD), reversibility
+    testing for asthma, and baseline function.
+
+- id: peak_flow_measurement
+  name: Peak Expiratory Flow Rate (PEFR)
+  category: other
+  priority: HIGH
+  for_diseases:
+    - asthma_attack
+  rationale: Severity assessment and response-to-treatment monitoring in acute asthma.
+
+- id: fasting_glucose
+  name: Fasting Plasma Glucose
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - type2_diabetes
+  rationale: ≥ 7.0 mmol/L on 2 occasions diagnostic for T2DM per WHO criteria.
+
+- id: tsh
+  name: TSH (Thyroid Stimulating Hormone)
+  category: lab
+  priority: ROUTINE
+  for_diseases:
+    - hypothyroidism
+    - anxiety_disorder
+  rationale: Elevated TSH confirms primary hypothyroidism. Sensitive first-line test.
+
+- id: echocardiogram_stress
+  name: Stress Echocardiogram / Exercise Tolerance Test
+  category: cardiac
+  priority: HIGH
+  for_diseases:
+    - unstable_angina
+    - acs
+  rationale: Unmasks inducible ischaemia following stabilisation of the acute event.
+
+- id: skin_prick_test
+  name: Allergy Skin Prick Test / RAST / Specific IgE
+  category: other
+  priority: ROUTINE
+  for_diseases:
+    - anaphylaxis
+    - asthma_attack
+  rationale: Identifies causative allergen after anaphylaxis episode for avoidance counselling.
+
+- id: eeg
+  name: EEG (Electroencephalogram)
+  category: other
+  priority: ROUTINE
+  for_diseases:
+    - migraine
+    - ischemic_stroke
+  rationale: Differentiates epilepsy from migraine with aura or post-ictal confusion.
+
+- id: urine_dipstick
+  name: Urine Dipstick
+  category: lab
+  priority: HIGH
+  for_diseases:
+    - uti
+    - pyelonephritis
+    - type2_diabetes
+    - hypertensive_crisis
+  rationale: >
+    Quick point-of-care test for nitrites (bacteria), leucocytes,
+    glucose, protein, blood, and ketones.

@@ -1,0 +1,514 @@
+# =========================================================
+# risk_factors.yaml — Clinical risk factor definitions
+# =========================================================
+# Schema:
+#   id                : unique snake_case identifier
+#   name              : human-readable name
+#   category          : category grouping
+#   detection_terms   : strings to match in medical_history,
+#                       current_medications, or social_history
+#   source_fields     : which ClinicalState fields to check
+#   confidence_modifier: default delta when this factor is present
+# =========================================================
+
+- id: hypertension
+  name: Hypertension
+  category: cardiovascular
+  detection_terms:
+    - hypertension
+    - high blood pressure
+    - htn
+    - bp high
+    - elevated blood pressure
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.08
+
+- id: diabetes
+  name: Diabetes Mellitus
+  category: metabolic
+  detection_terms:
+    - diabetes
+    - diabetic
+    - dm
+    - type 2 diabetes
+    - type 1 diabetes
+    - sugar problem
+    - blood sugar high
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.07
+
+- id: smoking
+  name: Active Smoking
+  category: lifestyle
+  detection_terms:
+    - smoking
+    - smoker
+    - cigarettes
+    - tobacco
+    - smokes
+    - pack years
+  source_fields:
+    - medical_history
+    - social_history
+  confidence_modifier: 0.06
+
+- id: obesity
+  name: Obesity
+  category: metabolic
+  detection_terms:
+    - obesity
+    - obese
+    - overweight
+    - bmi > 30
+    - high bmi
+    - morbidly obese
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.05
+
+- id: family_history_cardiac
+  name: Family History of Cardiac Disease
+  category: family_history
+  detection_terms:
+    - family history of heart disease
+    - father had heart attack
+    - mother had heart attack
+    - sibling heart attack
+    - cardiac family history
+    - family heart disease
+    - family history cardiac
+    - father cardiac
+    - family history coronary
+  source_fields:
+    - family_history
+    - medical_history
+  confidence_modifier: 0.09
+
+- id: family_history_diabetes
+  name: Family History of Diabetes
+  category: family_history
+  detection_terms:
+    - family history of diabetes
+    - father diabetic
+    - mother diabetic
+    - family diabetes
+    - diabetes runs in family
+  source_fields:
+    - family_history
+    - medical_history
+  confidence_modifier: 0.08
+
+- id: family_history_stroke
+  name: Family History of Stroke
+  category: family_history
+  detection_terms:
+    - family history of stroke
+    - father had stroke
+    - mother had stroke
+    - family stroke
+    - stroke runs in family
+  source_fields:
+    - family_history
+    - medical_history
+  confidence_modifier: 0.06
+
+- id: family_history_migraine
+  name: Family History of Migraine
+  category: family_history
+  detection_terms:
+    - family history of migraine
+    - migraines run in family
+    - mother has migraines
+    - father has migraines
+  source_fields:
+    - family_history
+    - medical_history
+  confidence_modifier: 0.08
+
+- id: family_history_thyroid
+  name: Family History of Thyroid Disease
+  category: family_history
+  detection_terms:
+    - family thyroid
+    - family history thyroid
+    - mother thyroid
+    - thyroid runs in family
+  source_fields:
+    - family_history
+    - medical_history
+  confidence_modifier: 0.07
+
+- id: hyperlipidemia
+  name: Hyperlipidemia / Dyslipidaemia
+  category: metabolic
+  detection_terms:
+    - hyperlipidemia
+    - dyslipidemia
+    - high cholesterol
+    - elevated cholesterol
+    - high triglycerides
+    - statin
+    - rosuvastatin
+    - atorvastatin
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.05
+
+- id: previous_cardiac_event
+  name: Previous Cardiac Event
+  category: cardiovascular
+  detection_terms:
+    - previous heart attack
+    - prior mi
+    - previous mi
+    - history of mi
+    - previous cabg
+    - coronary stent
+    - angioplasty
+    - bypass surgery
+    - previous acs
+    - prior cardiac event
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.14
+
+- id: atrial_fibrillation
+  name: Atrial Fibrillation
+  category: cardiovascular
+  detection_terms:
+    - atrial fibrillation
+    - af
+    - afib
+    - a fib
+    - irregular heartbeat
+    - warfarin
+    - apixaban
+    - rivaroxaban
+    - dabigatran
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.12
+
+- id: copd
+  name: COPD
+  category: respiratory
+  detection_terms:
+    - copd
+    - chronic obstructive pulmonary disease
+    - emphysema
+    - chronic bronchitis
+    - tiotropium
+    - ipratropium
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.20
+
+- id: asthma
+  name: Asthma
+  category: respiratory
+  detection_terms:
+    - asthma
+    - asthmatic
+    - salbutamol
+    - ventolin
+    - inhaler
+    - budesonide
+    - fluticasone
+    - beclomethasone
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.22
+
+- id: immunosuppression
+  name: Immunosuppression
+  category: immune
+  detection_terms:
+    - immunosuppressed
+    - on steroids
+    - prednisolone
+    - methotrexate
+    - ciclosporin
+    - tacrolimus
+    - chemotherapy
+    - hiv
+    - aids
+    - transplant
+    - immunosuppression
+    - biologic therapy
+  source_fields:
+    - medical_history
+    - current_medications
+  confidence_modifier: 0.12
+
+- id: chronic_kidney_disease
+  name: Chronic Kidney Disease
+  category: renal
+  detection_terms:
+    - chronic kidney disease
+    - ckd
+    - renal failure
+    - kidney disease
+    - dialysis
+    - nephropathy
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.06
+
+- id: dvt_history
+  name: History of DVT / PE
+  category: vascular
+  detection_terms:
+    - dvt
+    - deep vein thrombosis
+    - pulmonary embolism
+    - pe
+    - previous clot
+    - blood clot history
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.16
+
+- id: malignancy
+  name: Active or Recent Malignancy
+  category: oncological
+  detection_terms:
+    - cancer
+    - malignancy
+    - tumour
+    - tumor
+    - carcinoma
+    - lymphoma
+    - leukaemia
+    - leukemia
+    - chemotherapy
+    - oncology
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.10
+
+- id: immobilization
+  name: Prolonged Immobilisation
+  category: vascular
+  detection_terms:
+    - bed rest
+    - immobile
+    - immobilised
+    - wheelchair bound
+    - unable to mobilise
+    - long flight
+    - long journey
+    - prolonged sitting
+  source_fields:
+    - medical_history
+    - social_history
+  confidence_modifier: 0.14
+
+- id: recent_surgery
+  name: Recent Surgery
+  category: surgical
+  detection_terms:
+    - recent surgery
+    - post-operative
+    - post operative
+    - recently operated
+    - surgery within 4 weeks
+    - post surgery
+    - operation
+  source_fields:
+    - medical_history
+    - surgical_history
+  confidence_modifier: 0.12
+
+- id: oral_contraceptives
+  name: Oral Contraceptive Use
+  category: pharmacological
+  detection_terms:
+    - oral contraceptive
+    - contraceptive pill
+    - ocp
+    - combined pill
+    - ethinylestradiol
+    - levonorgestrel
+  source_fields:
+    - current_medications
+  confidence_modifier: 0.09
+
+- id: alcohol_use
+  name: Alcohol Use
+  category: lifestyle
+  detection_terms:
+    - alcohol
+    - drinking
+    - drinker
+    - alcoholic
+    - heavy drinker
+    - alcohol use
+  source_fields:
+    - social_history
+    - medical_history
+  confidence_modifier: 0.07
+
+- id: nsaid_use
+  name: NSAID Use
+  category: pharmacological
+  detection_terms:
+    - ibuprofen
+    - naproxen
+    - diclofenac
+    - indomethacin
+    - celecoxib
+    - mefenamic acid
+    - nsaid
+    - anti-inflammatory
+  source_fields:
+    - current_medications
+  confidence_modifier: 0.12
+
+- id: h_pylori_infection
+  name: H. Pylori Infection
+  category: infectious
+  detection_terms:
+    - h pylori
+    - helicobacter pylori
+    - helicobacter
+    - h. pylori
+    - hp positive
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.14
+
+- id: gallstones
+  name: Gallstones / Cholelithiasis
+  category: gastrointestinal
+  detection_terms:
+    - gallstones
+    - cholelithiasis
+    - cholecystitis
+    - gallbladder stones
+  source_fields:
+    - medical_history
+    - surgical_history
+  confidence_modifier: 0.22
+
+- id: known_allergy
+  name: Known Allergy (Anaphylaxis Risk)
+  category: immunological
+  detection_terms:
+    - allergy
+    - allergic
+    - previous anaphylaxis
+    - anaphylaxis history
+    - food allergy
+    - drug allergy
+    - penicillin allergy
+    - bee sting allergy
+    - nut allergy
+    - peanut allergy
+  source_fields:
+    - allergies
+    - medical_history
+  confidence_modifier: 0.18
+
+- id: previous_anaphylaxis
+  name: Previous Anaphylaxis
+  category: immunological
+  detection_terms:
+    - previous anaphylaxis
+    - anaphylactic shock history
+    - had anaphylaxis before
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.22
+
+- id: autoimmune_disease
+  name: Autoimmune Disease
+  category: immune
+  detection_terms:
+    - autoimmune
+    - hashimoto
+    - rheumatoid arthritis
+    - lupus
+    - sle
+    - inflammatory bowel disease
+    - crohn
+    - colitis
+    - psoriasis
+    - multiple sclerosis
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.09
+
+- id: stress
+  name: Psychosocial Stress
+  category: psychiatric
+  detection_terms:
+    - stress
+    - stressed
+    - anxiety
+    - work stress
+    - under a lot of stress
+    - stressful
+  source_fields:
+    - social_history
+    - medical_history
+  confidence_modifier: 0.06
+
+- id: previous_stroke
+  name: Previous Stroke / TIA
+  category: neurological
+  detection_terms:
+    - previous stroke
+    - prior stroke
+    - tia
+    - transient ischaemic attack
+    - mini stroke
+    - stroke history
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.16
+
+- id: urinary_catheter
+  name: Urinary Catheter
+  category: urological
+  detection_terms:
+    - catheter
+    - urinary catheter
+    - catheterised
+    - foley catheter
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.14
+
+- id: hiatal_hernia
+  name: Hiatal Hernia
+  category: gastrointestinal
+  detection_terms:
+    - hiatal hernia
+    - hiatus hernia
+  source_fields:
+    - medical_history
+    - surgical_history
+  confidence_modifier: 0.10
+
+- id: non_compliance_medications
+  name: Medication Non-Compliance
+  category: pharmacological
+  detection_terms:
+    - stopped medication
+    - not taking medication
+    - missed doses
+    - non-compliant
+    - non compliance
+    - stopped pills
+    - forgot medication
+  source_fields:
+    - medical_history
+  confidence_modifier: 0.08

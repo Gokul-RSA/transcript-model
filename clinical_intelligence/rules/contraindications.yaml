@@ -1,0 +1,242 @@
+# =========================================================
+# contraindications.yaml — Contraindication rules
+# =========================================================
+# Schema:
+#   id                  : unique identifier
+#   drug_or_procedure   : what is contraindicated
+#   trigger_type        : allergy | history | medication | comorbidity
+#   trigger_terms       : list of strings to match trigger_type source
+#   severity            : ABSOLUTE | RELATIVE
+#   reason              : clinical explanation
+#   recommendation      : what to do instead
+# =========================================================
+
+# ── Allergy-based ─────────────────────────────────────────
+
+- id: ci_penicillin_allergy
+  drug_or_procedure: Penicillin antibiotics (Amoxicillin, Ampicillin, Co-amoxiclav)
+  trigger_type: allergy
+  trigger_terms:
+    - penicillin
+    - amoxicillin
+    - ampicillin
+    - beta-lactam
+  severity: ABSOLUTE
+  reason: IgE-mediated hypersensitivity reaction risk including anaphylaxis.
+  recommendation: >
+    Use alternative antibiotic class. For mild allergy: consider cephalosporin
+    with caution (10% cross-reactivity). For severe allergy: use macrolide, 
+    fluoroquinolone, or clindamycin depending on indication.
+
+- id: ci_sulfa_allergy
+  drug_or_procedure: Sulphonamide antibiotics (Co-trimoxazole, Trimethoprim-Sulfamethoxazole)
+  trigger_type: allergy
+  trigger_terms:
+    - sulfa
+    - sulphonamide
+    - sulfamethoxazole
+    - co-trimoxazole
+    - bactrim
+    - septrin
+  severity: ABSOLUTE
+  reason: Risk of severe hypersensitivity reaction including Stevens-Johnson syndrome.
+  recommendation: Use nitrofurantoin or fosfomycin for UTI. Consult microbiologist for systemic infections.
+
+- id: ci_nsaid_allergy
+  drug_or_procedure: NSAIDs (Ibuprofen, Naproxen, Diclofenac, Aspirin)
+  trigger_type: allergy
+  trigger_terms:
+    - nsaid
+    - ibuprofen
+    - aspirin
+    - naproxen
+    - diclofenac
+    - aspirin allergy
+    - nsaid allergy
+  severity: ABSOLUTE
+  reason: Cross-reactive hypersensitivity or Samter's triad (asthma, nasal polyps, aspirin sensitivity).
+  recommendation: Use paracetamol for analgesia. Opioids if stronger analgesia required.
+
+- id: ci_contrast_allergy
+  drug_or_procedure: Iodinated Contrast Media (CT with contrast, CTPA, Angiography)
+  trigger_type: allergy
+  trigger_terms:
+    - contrast allergy
+    - iodine allergy
+    - contrast reaction
+    - previous contrast reaction
+  severity: RELATIVE
+  reason: Previous contrast reaction increases risk of repeated hypersensitivity.
+  recommendation: Pre-medicate with corticosteroids + antihistamine. Use low/iso-osmolar contrast. Have resuscitation equipment available.
+
+- id: ci_latex_allergy
+  drug_or_procedure: Latex-containing equipment and procedures
+  trigger_type: allergy
+  trigger_terms:
+    - latex
+    - latex allergy
+    - rubber allergy
+  severity: ABSOLUTE
+  reason: Risk of anaphylaxis from latex contact during procedures.
+  recommendation: Use latex-free equipment and gloves throughout.
+
+# ── History-based ─────────────────────────────────────────
+
+- id: ci_nsaid_peptic_ulcer
+  drug_or_procedure: NSAIDs (Ibuprofen, Naproxen, Diclofenac, Aspirin)
+  trigger_type: history
+  trigger_terms:
+    - peptic ulcer
+    - gastric ulcer
+    - duodenal ulcer
+    - gi bleed
+    - upper gi bleed
+    - hematemesis
+    - dark stools
+    - melena
+  severity: RELATIVE
+  reason: NSAIDs inhibit COX-1, reducing gastroprotective prostaglandins — risk of GI haemorrhage.
+  recommendation: Avoid NSAIDs. If essential, use COX-2 selective inhibitor + PPI cover. Consider paracetamol instead.
+
+- id: ci_thrombolysis_haemorrhage
+  drug_or_procedure: Thrombolysis (tPA, Alteplase)
+  trigger_type: history
+  trigger_terms:
+    - previous stroke
+    - haemorrhagic stroke
+    - recent surgery
+    - active bleeding
+    - coagulopathy
+    - anticoagulation
+    - brain tumour
+    - recent gi bleed
+  severity: ABSOLUTE
+  reason: Absolute contraindications to systemic thrombolysis in acute ischaemic stroke/STEMI.
+  recommendation: Proceed to primary PCI or mechanical thrombectomy if available. Consult senior clinician.
+
+- id: ci_anticoagulation_haemorrhage
+  drug_or_procedure: Anticoagulation (Heparin, LMWH, Warfarin, DOACs)
+  trigger_type: history
+  trigger_terms:
+    - active bleeding
+    - intracranial haemorrhage
+    - haemorrhagic stroke
+    - thrombocytopenia
+    - severe liver disease
+    - uncontrolled hypertension
+    - recent surgery
+  severity: RELATIVE
+  reason: Anticoagulation significantly increases bleeding risk in these contexts.
+  recommendation: Weigh bleeding vs. thrombotic risk carefully. Consider inferior vena cava filter if anticoagulation not possible for PE/DVT.
+
+- id: ci_metformin_renal_impairment
+  drug_or_procedure: Metformin
+  trigger_type: history
+  trigger_terms:
+    - chronic kidney disease
+    - ckd
+    - renal failure
+    - egfr < 30
+    - dialysis
+    - contrast imaging planned
+  severity: RELATIVE
+  reason: Risk of lactic acidosis when eGFR < 30. Must be held before contrast administration.
+  recommendation: Reduce dose for eGFR 30-45. Stop when eGFR < 30 or before contrast imaging. Restart 48 hours post-contrast if renal function stable.
+
+- id: ci_beta_blocker_asthma
+  drug_or_procedure: Beta-blockers (Atenolol, Bisoprolol, Propranolol, Metoprolol)
+  trigger_type: history
+  trigger_terms:
+    - asthma
+    - reactive airway disease
+    - bronchospasm
+  severity: ABSOLUTE
+  reason: Non-selective beta-blockers cause bronchoconstriction in asthma; even cardioselective agents carry risk in severe asthma.
+  recommendation: Use calcium channel blocker or ACE inhibitor as alternative antihypertensive/rate-control.
+
+- id: ci_ace_inhibitor_angioedema
+  drug_or_procedure: ACE Inhibitors (Ramipril, Lisinopril, Enalapril, Perindopril)
+  trigger_type: history
+  trigger_terms:
+    - ace inhibitor allergy
+    - angioedema
+    - previous ace inhibitor angioedema
+  severity: ABSOLUTE
+  reason: ACE inhibitors cause bradykinin accumulation — risk of recurrent life-threatening angioedema.
+  recommendation: "Use ARB (Losartan, Candesartan) instead. NOTE: ARBs also rarely cause angioedema; monitor closely."
+
+- id: ci_fluoroquinolone_seizure
+  drug_or_procedure: Fluoroquinolones (Ciprofloxacin, Levofloxacin, Moxifloxacin)
+  trigger_type: history
+  trigger_terms:
+    - epilepsy
+    - seizures
+    - seizure disorder
+    - taking antiepileptics
+  severity: RELATIVE
+  reason: Fluoroquinolones lower seizure threshold via GABA receptor antagonism.
+  recommendation: Use alternative antibiotic. If essential, adjust antiepileptic dosing and monitor closely.
+
+- id: ci_opioid_copd
+  drug_or_procedure: Opioid Analgesics (Morphine, Codeine, Tramadol, Oxycodone)
+  trigger_type: history
+  trigger_terms:
+    - copd
+    - respiratory depression
+    - hypercapnic respiratory failure
+    - type 2 respiratory failure
+  severity: RELATIVE
+  reason: Opioids cause respiratory depression — particularly dangerous with pre-existing hypercapnia.
+  recommendation: Use lowest effective dose with careful monitoring. Consider non-opioid alternatives first.
+
+- id: ci_corticosteroids_diabetes
+  drug_or_procedure: Systemic Corticosteroids (Prednisolone, Dexamethasone, Hydrocortisone)
+  trigger_type: history
+  trigger_terms:
+    - diabetes
+    - diabetic
+  severity: RELATIVE
+  reason: Steroids cause significant hyperglycaemia in diabetic patients — risk of hyperosmolar state or DKA.
+  recommendation: Monitor blood glucose 4-hourly. Adjust insulin/antidiabetic regimen accordingly. Endocrinology input if prolonged steroid course.
+
+# ── Medication-based ─────────────────────────────────────
+
+- id: ci_warfarin_nsaid
+  drug_or_procedure: NSAIDs with Warfarin
+  trigger_type: medication
+  trigger_terms:
+    - warfarin
+    - acenocoumarol
+  severity: RELATIVE
+  reason: NSAIDs increase GI bleeding risk and may potentiate anticoagulation effect.
+  recommendation: Avoid combination where possible. Use paracetamol for analgesia. Monitor INR closely if unavoidable.
+
+- id: ci_ssri_serotonin_syndrome
+  drug_or_procedure: Serotonergic agents (Tramadol, Linezolid, MAOIs, Triptans)
+  trigger_type: medication
+  trigger_terms:
+    - ssri
+    - snri
+    - sertraline
+    - fluoxetine
+    - paroxetine
+    - venlafaxine
+    - duloxetine
+    - citalopram
+  severity: RELATIVE
+  reason: Combining serotonergic agents risks serotonin syndrome (hyperthermia, neuromuscular excitability, autonomic instability).
+  recommendation: Avoid tramadol; use non-opioid analgesia. Contraindicate MAOIs with any SSRI/SNRI.
+
+- id: ci_digoxin_hypokalemia
+  drug_or_procedure: Digoxin
+  trigger_type: medication
+  trigger_terms:
+    - diuretics
+    - furosemide
+    - hydrochlorothiazide
+    - spironolactone
+    - hypokalaemia
+    - low potassium
+  severity: RELATIVE
+  reason: Hypokalaemia potentiates digoxin toxicity — risk of lethal arrhythmias.
+  recommendation: Ensure potassium > 4.0 mmol/L before and during digoxin therapy. Monitor digoxin levels.

@@ -202,9 +202,9 @@ class DiarizationWorkerManager:
     def _load_model_from_pretrained(self):
         """Blocking helper — runs in a thread pool via asyncio.to_thread."""
         return _Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1",
-            token=settings.HUGGINGFACE_TOKEN,
-        )
+        "pyannote/speaker-diarization-3.1",
+        use_auth_token=settings.HUGGINGFACE_TOKEN,
+    )
 
     # ------------------------------------------------------------------
     # Audio ingestion

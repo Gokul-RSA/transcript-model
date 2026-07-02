@@ -1,0 +1,198 @@
+# =========================================================
+# drug_interactions.yaml — Drug–drug interaction pairs
+# =========================================================
+# Schema:
+#   id              : unique identifier
+#   drug_a          : first drug (canonical name or class)
+#   drug_a_terms    : synonyms for drug_a
+#   drug_b          : second drug (canonical name or class)
+#   drug_b_terms    : synonyms for drug_b
+#   severity        : MAJOR | MODERATE | MINOR
+#   mechanism       : pharmacological mechanism
+#   clinical_effect : observed clinical consequence
+#   recommendation  : management guidance
+# =========================================================
+
+- id: di_warfarin_aspirin
+  drug_a: Warfarin
+  drug_a_terms: [warfarin, coumadin, acenocoumarol]
+  drug_b: Aspirin
+  drug_b_terms: [aspirin, acetylsalicylic acid, asa]
+  severity: MAJOR
+  mechanism: Additive anticoagulant and antiplatelet effects; aspirin displaces warfarin from protein binding.
+  clinical_effect: Significantly increased risk of major bleeding including intracranial haemorrhage.
+  recommendation: >
+    Avoid combination unless cardiology indication (post-ACS/stent) clearly outweighs risk.
+    If required, use lowest dose aspirin (75 mg), add PPI cover, and monitor INR closely.
+
+- id: di_warfarin_nsaid
+  drug_a: Warfarin
+  drug_a_terms: [warfarin, coumadin, acenocoumarol]
+  drug_b: NSAIDs
+  drug_b_terms: [ibuprofen, naproxen, diclofenac, indomethacin, celecoxib, mefenamic acid]
+  severity: MAJOR
+  mechanism: NSAIDs inhibit platelet aggregation and cause gastric mucosal injury; may enhance anticoagulant effect.
+  clinical_effect: Significantly elevated GI bleeding risk and unstable INR.
+  recommendation: Use paracetamol for analgesia. If NSAID unavoidable, monitor INR daily and add PPI.
+
+- id: di_ssri_tramadol
+  drug_a: SSRIs / SNRIs
+  drug_a_terms: [sertraline, fluoxetine, paroxetine, citalopram, escitalopram, venlafaxine, duloxetine]
+  drug_b: Tramadol
+  drug_b_terms: [tramadol, ultram]
+  severity: MAJOR
+  mechanism: Dual serotonergic mechanism — both inhibit serotonin reuptake; tramadol is also a weak SSNRI.
+  clinical_effect: Risk of serotonin syndrome (agitation, hyperthermia, clonus, autonomic instability).
+  recommendation: Avoid combination. Use alternative analgesic (paracetamol, NSAIDs if safe, weak opioids with different profile).
+
+- id: di_maoi_ssri
+  drug_a: MAO Inhibitors
+  drug_a_terms: [phenelzine, tranylcypromine, moclobemide, selegiline, rasagiline]
+  drug_b: SSRIs / SNRIs
+  drug_b_terms: [sertraline, fluoxetine, paroxetine, citalopram, venlafaxine, duloxetine]
+  severity: MAJOR
+  mechanism: Inhibition of MAO combined with serotonin reuptake inhibition causes massive serotonin excess.
+  clinical_effect: Potentially fatal serotonin syndrome.
+  recommendation: >
+    ABSOLUTE contraindication. Washout period required: 14 days after stopping MAOI before starting SSRI.
+    For fluoxetine: 5 weeks washout before MAOI due to long half-life.
+
+- id: di_ace_arb
+  drug_a: ACE Inhibitors
+  drug_a_terms: [ramipril, lisinopril, enalapril, perindopril, captopril, trandolapril]
+  drug_b: ARBs (Angiotensin Receptor Blockers)
+  drug_b_terms: [losartan, candesartan, valsartan, irbesartan, telmisartan, olmesartan]
+  severity: MAJOR
+  mechanism: Dual RAAS blockade — combined ACEi + ARB leads to excessive angiotensin II suppression.
+  clinical_effect: Severe hypotension, acute kidney injury, and hyperkalaemia.
+  recommendation: Avoid combination in most patients. Exception under specialist supervision in HFrEF with specialist guidance.
+
+- id: di_metformin_contrast
+  drug_a: Metformin
+  drug_a_terms: [metformin, glucophage]
+  drug_b: Iodinated Contrast
+  drug_b_terms: [iv contrast, contrast dye, iopamidol, iohexol, iodixanol, omnipaque]
+  severity: MODERATE
+  mechanism: Contrast-induced AKI reduces metformin clearance, increasing lactic acidosis risk.
+  clinical_effect: Lactic acidosis — potentially fatal metabolic emergency.
+  recommendation: Hold metformin 48 hours before and after contrast administration in patients with eGFR < 45. Restart only when renal function confirmed stable.
+
+- id: di_digoxin_amiodarone
+  drug_a: Digoxin
+  drug_a_terms: [digoxin, digitalis, lanoxin]
+  drug_b: Amiodarone
+  drug_b_terms: [amiodarone, cordarone]
+  severity: MAJOR
+  mechanism: Amiodarone inhibits P-glycoprotein and reduces renal clearance of digoxin; also additive AV node depression.
+  clinical_effect: Digoxin toxicity (nausea, visual disturbances, bradycardia, arrhythmias).
+  recommendation: Reduce digoxin dose by 50% when starting amiodarone. Monitor digoxin levels and ECG closely.
+
+- id: di_digoxin_calcium_channel_blocker
+  drug_a: Digoxin
+  drug_a_terms: [digoxin, lanoxin]
+  drug_b: Calcium Channel Blockers (Verapamil / Diltiazem)
+  drug_b_terms: [verapamil, diltiazem]
+  severity: MAJOR
+  mechanism: Verapamil/diltiazem reduce digoxin clearance and have additive AV nodal blocking effects.
+  clinical_effect: Complete heart block and severe bradycardia.
+  recommendation: Avoid combination if possible. Reduce digoxin dose by 50% and monitor ECG continuously.
+
+- id: di_potassium_ace_inhibitor
+  drug_a: Potassium-sparing diuretics / Potassium supplements
+  drug_a_terms: [spironolactone, eplerenone, amiloride, potassium chloride, potassium supplement]
+  drug_b: ACE Inhibitors
+  drug_b_terms: [ramipril, lisinopril, enalapril, perindopril]
+  severity: MAJOR
+  mechanism: Both agents increase potassium retention via suppression of aldosterone.
+  clinical_effect: Hyperkalaemia — risk of fatal cardiac arrhythmias.
+  recommendation: Monitor serum potassium closely (within 1-2 weeks of initiation/dose change). Reduce or stop potassium supplement. Avoid high-K+ foods.
+
+- id: di_quinolone_qt_prolonging
+  drug_a: Fluoroquinolones
+  drug_a_terms: [ciprofloxacin, levofloxacin, moxifloxacin]
+  drug_b: QT-prolonging agents
+  drug_b_terms: [haloperidol, amiodarone, sotalol, azithromycin, erythromycin, methadone, ondansetron, domperidone]
+  severity: MAJOR
+  mechanism: Additive QTc prolongation via potassium channel blockade.
+  clinical_effect: Torsades de Pointes and sudden cardiac death.
+  recommendation: Avoid combination. Check QTc on baseline ECG. If unavoidable, continuous cardiac monitoring.
+
+- id: di_lithium_nsaid
+  drug_a: Lithium
+  drug_a_terms: [lithium carbonate, lithium citrate, priadel]
+  drug_b: NSAIDs
+  drug_b_terms: [ibuprofen, naproxen, diclofenac, indomethacin, celecoxib]
+  severity: MAJOR
+  mechanism: NSAIDs reduce renal prostaglandin synthesis, decreasing lithium excretion.
+  clinical_effect: Lithium toxicity (tremor, ataxia, confusion, seizures, renal failure).
+  recommendation: Avoid NSAIDs in patients on lithium. Use paracetamol. If NSAID required, check lithium level within 5 days and reduce dose.
+
+- id: di_statins_fibrates
+  drug_a: Statins
+  drug_a_terms: [atorvastatin, rosuvastatin, simvastatin, pravastatin, fluvastatin]
+  drug_b: Fibrates
+  drug_b_terms: [gemfibrozil, fenofibrate, bezafibrate]
+  severity: MODERATE
+  mechanism: Inhibition of statin metabolism via CYP3A4 (gemfibrozil in particular) increases statin exposure.
+  clinical_effect: Myopathy and rhabdomyolysis risk.
+  recommendation: Avoid simvastatin + gemfibrozil. If combination necessary, use fenofibrate with lowest statin dose. Monitor CK levels.
+
+- id: di_clopidogrel_ppi
+  drug_a: Clopidogrel
+  drug_a_terms: [clopidogrel, plavix]
+  drug_b: PPIs (Proton Pump Inhibitors)
+  drug_b_terms: [omeprazole, esomeprazole, lansoprazole, pantoprazole, rabeprazole]
+  severity: MODERATE
+  mechanism: Omeprazole/esomeprazole inhibit CYP2C19, reducing clopidogrel activation to its active metabolite.
+  clinical_effect: Reduced antiplatelet effect — potential increased risk of cardiovascular events.
+  recommendation: Use pantoprazole or rabeprazole (minimal CYP2C19 interaction) instead of omeprazole when PPI is needed with clopidogrel.
+
+- id: di_methotrexate_nsaid
+  drug_a: Methotrexate
+  drug_a_terms: [methotrexate, mtx]
+  drug_b: NSAIDs
+  drug_b_terms: [ibuprofen, naproxen, diclofenac, aspirin, indomethacin]
+  severity: MAJOR
+  mechanism: NSAIDs reduce renal clearance of methotrexate via prostaglandin inhibition; competition for tubular secretion.
+  clinical_effect: Methotrexate toxicity — bone marrow suppression, mucositis, nephrotoxicity.
+  recommendation: "Avoid combination. If unavoidable (e.g., RA): use lowest NSAID dose, monitor FBC and renal function weekly."
+
+- id: di_ssri_anticoagulant
+  drug_a: SSRIs
+  drug_a_terms: [sertraline, fluoxetine, paroxetine, citalopram, escitalopram, venlafaxine]
+  drug_b: Anticoagulants
+  drug_b_terms: [warfarin, apixaban, rivaroxaban, dabigatran, edoxaban, heparin, enoxaparin]
+  severity: MODERATE
+  mechanism: SSRIs inhibit platelet serotonin uptake, impairing platelet aggregation; may alter warfarin metabolism.
+  clinical_effect: Increased bleeding risk (especially GI bleeding).
+  recommendation: Monitor for bleeding symptoms. Add PPI for GI protection. Monitor INR if on warfarin.
+
+- id: di_calcium_tetracycline
+  drug_a: Calcium / Antacids / Dairy
+  drug_a_terms: [calcium carbonate, calcium, antacid, gaviscon, milk, dairy]
+  drug_b: Tetracyclines / Fluoroquinolones
+  drug_b_terms: [tetracycline, doxycycline, minocycline, ciprofloxacin, levofloxacin]
+  severity: MODERATE
+  mechanism: Divalent cations chelate tetracyclines/quinolones, forming insoluble complexes — prevents absorption.
+  clinical_effect: Significantly reduced antibiotic bioavailability and treatment failure.
+  recommendation: Separate administration by at least 2 hours. Take antibiotic 1 hour before or 2 hours after calcium/antacids.
+
+- id: di_insulin_beta_blocker
+  drug_a: Insulin / Sulphonylureas
+  drug_a_terms: [insulin, glibenclamide, gliclazide, glipizide, glimepiride]
+  drug_b: Beta-blockers
+  drug_b_terms: [propranolol, atenolol, bisoprolol, metoprolol, carvedilol]
+  severity: MODERATE
+  mechanism: Beta-blockers mask tachycardia (adrenergic warning sign of hypoglycaemia) and may delay recovery from hypoglycaemia.
+  clinical_effect: Prolonged and masked hypoglycaemic episodes.
+  recommendation: Use cardioselective beta-blocker if required (atenolol, bisoprolol). Counsel patient to monitor for sweating and hunger as alternate hypoglycaemia signs.
+
+- id: di_alcohol_metronidazole
+  drug_a: Metronidazole / Tinidazole
+  drug_a_terms: [metronidazole, flagyl, tinidazole]
+  drug_b: Alcohol
+  drug_b_terms: [alcohol, ethanol, beer, wine, spirits, drinking]
+  severity: MAJOR
+  mechanism: Metronidazole inhibits aldehyde dehydrogenase, causing accumulation of acetaldehyde.
+  clinical_effect: Disulfiram-like reaction — severe flushing, headache, nausea, vomiting, hypotension, tachycardia.
+  recommendation: Strict alcohol abstinence during treatment and 48 hours after completion. Counsel patient explicitly.

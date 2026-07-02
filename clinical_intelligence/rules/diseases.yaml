@@ -1,0 +1,1025 @@
+# =========================================================
+# diseases.yaml — Disease definitions with weighted symptoms
+# =========================================================
+# Schema per disease:
+#   id                    : unique snake_case identifier
+#   name                  : human-readable name
+#   category              : clinical category
+#   icd10                 : ICD-10 code (informational)
+#   cardinal_symptoms     : list of {name, weight} — highest-impact symptoms
+#   supportive_symptoms   : list of {name, weight} — additional supporting symptoms
+#   risk_factor_modifiers : dict of risk_factor_id → confidence delta
+#   age_range             : {min, max, modifier} — age-based confidence delta
+#   gender_modifier       : {gender, modifier} — optional gender-based delta
+#   vital_sign_criteria   : conditions on vitals that add confidence
+#   negation_penalty      : confidence reduction per negated cardinal symptom
+#   min_diagnosis_threshold : minimum confidence to include in output
+# =========================================================
+
+- id: acs
+  name: Acute Coronary Syndrome
+  category: cardiovascular
+  icd10: I24.9
+  cardinal_symptoms:
+    - name: chest pain
+      weight: 0.35
+    - name: chest tightness
+      weight: 0.30
+    - name: chest pressure
+      weight: 0.30
+    - name: radiating arm pain
+      weight: 0.20
+    - name: jaw pain
+      weight: 0.15
+  supportive_symptoms:
+    - name: shortness of breath
+      weight: 0.10
+    - name: sweating
+      weight: 0.08
+    - name: nausea
+      weight: 0.06
+    - name: palpitations
+      weight: 0.06
+    - name: dizziness
+      weight: 0.05
+    - name: fatigue
+      weight: 0.04
+  risk_factor_modifiers:
+    hypertension: 0.10
+    diabetes: 0.08
+    smoking: 0.07
+    obesity: 0.05
+    family_history_cardiac: 0.10
+    hyperlipidemia: 0.06
+    previous_cardiac_event: 0.15
+  age_range:
+    min: 40
+    modifier: 0.08
+  gender_modifier:
+    gender: Male
+    modifier: 0.05
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 140
+      modifier: 0.05
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.05
+    - condition: spo2_lt
+      threshold: 95
+      modifier: 0.08
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.25
+
+- id: unstable_angina
+  name: Unstable Angina
+  category: cardiovascular
+  icd10: I20.0
+  cardinal_symptoms:
+    - name: chest pain
+      weight: 0.40
+    - name: chest tightness
+      weight: 0.30
+    - name: exertional chest pain
+      weight: 0.20
+    - name: rest chest pain
+      weight: 0.25
+  supportive_symptoms:
+    - name: shortness of breath
+      weight: 0.10
+    - name: sweating
+      weight: 0.07
+    - name: nausea
+      weight: 0.05
+  risk_factor_modifiers:
+    hypertension: 0.08
+    diabetes: 0.07
+    smoking: 0.06
+    family_history_cardiac: 0.09
+    previous_cardiac_event: 0.12
+  age_range:
+    min: 45
+    modifier: 0.07
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.25
+
+- id: heart_failure
+  name: Congestive Heart Failure
+  category: cardiovascular
+  icd10: I50.9
+  cardinal_symptoms:
+    - name: shortness of breath
+      weight: 0.35
+    - name: orthopnea
+      weight: 0.30
+    - name: paroxysmal nocturnal dyspnea
+      weight: 0.30
+    - name: leg swelling
+      weight: 0.25
+    - name: ankle swelling
+      weight: 0.25
+  supportive_symptoms:
+    - name: fatigue
+      weight: 0.10
+    - name: reduced exercise tolerance
+      weight: 0.10
+    - name: palpitations
+      weight: 0.06
+    - name: dry cough
+      weight: 0.05
+    - name: weight gain
+      weight: 0.08
+  risk_factor_modifiers:
+    hypertension: 0.12
+    diabetes: 0.08
+    previous_cardiac_event: 0.15
+    obesity: 0.06
+    chronic_kidney_disease: 0.05
+  age_range:
+    min: 50
+    modifier: 0.08
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 140
+      modifier: 0.05
+    - condition: spo2_lt
+      threshold: 92
+      modifier: 0.10
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.04
+  negation_penalty: 0.18
+  min_diagnosis_threshold: 0.25
+
+- id: pulmonary_embolism
+  name: Pulmonary Embolism
+  category: cardiovascular
+  icd10: I26.9
+  cardinal_symptoms:
+    - name: sudden shortness of breath
+      weight: 0.35
+    - name: pleuritic chest pain
+      weight: 0.30
+    - name: hemoptysis
+      weight: 0.25
+    - name: leg swelling
+      weight: 0.20
+    - name: leg pain
+      weight: 0.15
+  supportive_symptoms:
+    - name: tachycardia
+      weight: 0.10
+    - name: cough
+      weight: 0.06
+    - name: syncope
+      weight: 0.10
+    - name: dizziness
+      weight: 0.07
+  risk_factor_modifiers:
+    dvt_history: 0.15
+    immobilization: 0.12
+    recent_surgery: 0.12
+    malignancy: 0.10
+    smoking: 0.06
+    obesity: 0.05
+    oral_contraceptives: 0.08
+  vital_sign_criteria:
+    - condition: spo2_lt
+      threshold: 94
+      modifier: 0.12
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.08
+  negation_penalty: 0.18
+  min_diagnosis_threshold: 0.25
+
+- id: ischemic_stroke
+  name: Ischemic Stroke
+  category: neurological
+  icd10: I63.9
+  cardinal_symptoms:
+    - name: sudden facial droop
+      weight: 0.35
+    - name: arm weakness
+      weight: 0.35
+    - name: speech difficulty
+      weight: 0.35
+    - name: sudden severe headache
+      weight: 0.20
+    - name: vision loss
+      weight: 0.20
+    - name: slurred speech
+      weight: 0.30
+  supportive_symptoms:
+    - name: dizziness
+      weight: 0.08
+    - name: confusion
+      weight: 0.12
+    - name: loss of balance
+      weight: 0.10
+    - name: numbness
+      weight: 0.10
+  risk_factor_modifiers:
+    hypertension: 0.12
+    atrial_fibrillation: 0.15
+    diabetes: 0.07
+    smoking: 0.07
+    previous_stroke: 0.18
+    family_history_stroke: 0.06
+    hyperlipidemia: 0.05
+  age_range:
+    min: 50
+    modifier: 0.08
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 160
+      modifier: 0.08
+  negation_penalty: 0.22
+  min_diagnosis_threshold: 0.25
+
+- id: hypertensive_crisis
+  name: Hypertensive Crisis
+  category: cardiovascular
+  icd10: I10
+  cardinal_symptoms:
+    - name: severe headache
+      weight: 0.30
+    - name: vision changes
+      weight: 0.25
+    - name: chest pain
+      weight: 0.20
+    - name: shortness of breath
+      weight: 0.15
+  supportive_symptoms:
+    - name: nausea
+      weight: 0.08
+    - name: confusion
+      weight: 0.10
+    - name: dizziness
+      weight: 0.08
+    - name: nosebleed
+      weight: 0.06
+  risk_factor_modifiers:
+    hypertension: 0.20
+    chronic_kidney_disease: 0.08
+    non_compliance_medications: 0.10
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 180
+      modifier: 0.30
+    - condition: bp_diastolic_gt
+      threshold: 120
+      modifier: 0.25
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.25
+
+- id: anaphylaxis
+  name: Anaphylaxis
+  category: immunological
+  icd10: T78.2
+  cardinal_symptoms:
+    - name: urticaria
+      weight: 0.30
+    - name: throat swelling
+      weight: 0.35
+    - name: difficulty swallowing
+      weight: 0.30
+    - name: bronchospasm
+      weight: 0.30
+    - name: hypotension
+      weight: 0.30
+    - name: hives
+      weight: 0.25
+    - name: rash
+      weight: 0.15
+  supportive_symptoms:
+    - name: shortness of breath
+      weight: 0.15
+    - name: wheezing
+      weight: 0.15
+    - name: angioedema
+      weight: 0.25
+    - name: vomiting
+      weight: 0.08
+    - name: dizziness
+      weight: 0.08
+  risk_factor_modifiers:
+    known_allergy: 0.20
+    previous_anaphylaxis: 0.25
+    asthma: 0.08
+  vital_sign_criteria:
+    - condition: bp_systolic_lt
+      threshold: 90
+      modifier: 0.25
+    - condition: pulse_gt
+      threshold: 110
+      modifier: 0.10
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.25
+
+- id: sepsis
+  name: Sepsis
+  category: infectious
+  icd10: A41.9
+  cardinal_symptoms:
+    - name: fever
+      weight: 0.25
+    - name: chills
+      weight: 0.18
+    - name: rigors
+      weight: 0.18
+    - name: altered mental status
+      weight: 0.20
+    - name: confusion
+      weight: 0.15
+  supportive_symptoms:
+    - name: shortness of breath
+      weight: 0.12
+    - name: rapid breathing
+      weight: 0.12
+    - name: decreased urine output
+      weight: 0.10
+    - name: fatigue
+      weight: 0.06
+    - name: nausea
+      weight: 0.05
+    - name: vomiting
+      weight: 0.05
+  risk_factor_modifiers:
+    diabetes: 0.08
+    immunosuppression: 0.15
+    chronic_kidney_disease: 0.07
+    recent_surgery: 0.10
+    urinary_tract_infection: 0.08
+    pneumonia: 0.08
+  age_range:
+    min: 65
+    modifier: 0.06
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.0
+      modifier: 0.10
+    - condition: temperature_lt
+      threshold: 36.0
+      modifier: 0.08
+    - condition: pulse_gt
+      threshold: 90
+      modifier: 0.08
+    - condition: bp_systolic_lt
+      threshold: 90
+      modifier: 0.15
+    - condition: spo2_lt
+      threshold: 94
+      modifier: 0.10
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.25
+
+- id: pneumonia
+  name: Pneumonia
+  category: respiratory
+  icd10: J18.9
+  cardinal_symptoms:
+    - name: productive cough
+      weight: 0.30
+    - name: fever
+      weight: 0.28
+    - name: pleuritic chest pain
+      weight: 0.20
+    - name: dyspnea
+      weight: 0.18
+    - name: shortness of breath
+      weight: 0.15
+  supportive_symptoms:
+    - name: chills
+      weight: 0.10
+    - name: fatigue
+      weight: 0.08
+    - name: sweating
+      weight: 0.08
+    - name: cough
+      weight: 0.12
+    - name: sputum production
+      weight: 0.12
+    - name: hemoptysis
+      weight: 0.08
+  risk_factor_modifiers:
+    smoking: 0.08
+    copd: 0.10
+    diabetes: 0.06
+    immunosuppression: 0.12
+    recent_viral_illness: 0.07
+    aspiration_risk: 0.10
+  age_range:
+    min: 65
+    modifier: 0.06
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.0
+      modifier: 0.12
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.06
+    - condition: spo2_lt
+      threshold: 94
+      modifier: 0.12
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: copd_exacerbation
+  name: COPD Exacerbation
+  category: respiratory
+  icd10: J44.1
+  cardinal_symptoms:
+    - name: worsening dyspnea
+      weight: 0.35
+    - name: increased sputum production
+      weight: 0.25
+    - name: change in sputum color
+      weight: 0.20
+    - name: wheezing
+      weight: 0.20
+    - name: cough
+      weight: 0.15
+  supportive_symptoms:
+    - name: fatigue
+      weight: 0.08
+    - name: chest tightness
+      weight: 0.10
+    - name: fever
+      weight: 0.06
+    - name: ankle swelling
+      weight: 0.06
+  risk_factor_modifiers:
+    copd: 0.25
+    smoking: 0.12
+    occupational_dust_exposure: 0.06
+  vital_sign_criteria:
+    - condition: spo2_lt
+      threshold: 92
+      modifier: 0.15
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.06
+  negation_penalty: 0.18
+  min_diagnosis_threshold: 0.25
+
+- id: asthma_attack
+  name: Asthma Attack
+  category: respiratory
+  icd10: J45.9
+  cardinal_symptoms:
+    - name: wheezing
+      weight: 0.35
+    - name: shortness of breath
+      weight: 0.30
+    - name: chest tightness
+      weight: 0.25
+    - name: cough
+      weight: 0.18
+  supportive_symptoms:
+    - name: nocturnal cough
+      weight: 0.10
+    - name: exertional dyspnea
+      weight: 0.10
+    - name: reduced peak flow
+      weight: 0.12
+  risk_factor_modifiers:
+    asthma: 0.30
+    allergic_rhinitis: 0.08
+    smoking: 0.07
+    atopy: 0.06
+    family_history_asthma: 0.08
+  vital_sign_criteria:
+    - condition: spo2_lt
+      threshold: 94
+      modifier: 0.12
+    - condition: pulse_gt
+      threshold: 110
+      modifier: 0.06
+  negation_penalty: 0.18
+  min_diagnosis_threshold: 0.25
+
+- id: migraine
+  name: Migraine
+  category: neurological
+  icd10: G43.9
+  cardinal_symptoms:
+    - name: severe headache
+      weight: 0.35
+    - name: unilateral headache
+      weight: 0.30
+    - name: pulsating headache
+      weight: 0.25
+    - name: aura
+      weight: 0.20
+    - name: visual aura
+      weight: 0.18
+  supportive_symptoms:
+    - name: nausea
+      weight: 0.12
+    - name: vomiting
+      weight: 0.10
+    - name: photophobia
+      weight: 0.15
+    - name: phonophobia
+      weight: 0.12
+    - name: sensitivity to light
+      weight: 0.12
+    - name: sensitivity to sound
+      weight: 0.10
+    - name: throbbing headache
+      weight: 0.18
+  risk_factor_modifiers:
+    family_history_migraine: 0.10
+    hormonal_changes: 0.06
+    stress: 0.05
+  gender_modifier:
+    gender: Female
+    modifier: 0.04
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: tension_headache
+  name: Tension-Type Headache
+  category: neurological
+  icd10: G44.2
+  cardinal_symptoms:
+    - name: bilateral headache
+      weight: 0.30
+    - name: pressure-type headache
+      weight: 0.28
+    - name: headache
+      weight: 0.20
+    - name: neck pain
+      weight: 0.15
+  supportive_symptoms:
+    - name: headache worsened by stress
+      weight: 0.10
+    - name: mild nausea
+      weight: 0.05
+    - name: fatigue
+      weight: 0.06
+  risk_factor_modifiers:
+    stress: 0.08
+    poor_posture: 0.05
+    dehydration: 0.05
+  negation_penalty: 0.10
+  min_diagnosis_threshold: 0.20
+
+- id: meningitis
+  name: Meningitis
+  category: neurological
+  icd10: G03.9
+  cardinal_symptoms:
+    - name: severe headache
+      weight: 0.30
+    - name: neck stiffness
+      weight: 0.35
+    - name: photophobia
+      weight: 0.20
+    - name: fever
+      weight: 0.25
+    - name: kernig sign
+      weight: 0.25
+    - name: brudzinski sign
+      weight: 0.25
+  supportive_symptoms:
+    - name: vomiting
+      weight: 0.10
+    - name: confusion
+      weight: 0.15
+    - name: rash
+      weight: 0.12
+    - name: altered consciousness
+      weight: 0.12
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.0
+      modifier: 0.12
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.25
+
+- id: type2_diabetes
+  name: Type 2 Diabetes Mellitus
+  category: endocrine
+  icd10: E11.9
+  cardinal_symptoms:
+    - name: polyuria
+      weight: 0.30
+    - name: polydipsia
+      weight: 0.30
+    - name: polyphagia
+      weight: 0.20
+    - name: unexplained weight loss
+      weight: 0.20
+    - name: increased urination
+      weight: 0.25
+    - name: increased thirst
+      weight: 0.25
+  supportive_symptoms:
+    - name: fatigue
+      weight: 0.10
+    - name: blurred vision
+      weight: 0.12
+    - name: slow healing wounds
+      weight: 0.12
+    - name: recurrent infections
+      weight: 0.08
+    - name: numbness in feet
+      weight: 0.08
+  risk_factor_modifiers:
+    obesity: 0.15
+    family_history_diabetes: 0.12
+    hypertension: 0.06
+    sedentary_lifestyle: 0.06
+  age_range:
+    min: 40
+    modifier: 0.05
+  negation_penalty: 0.12
+  min_diagnosis_threshold: 0.20
+
+- id: hypothyroidism
+  name: Hypothyroidism
+  category: endocrine
+  icd10: E03.9
+  cardinal_symptoms:
+    - name: fatigue
+      weight: 0.25
+    - name: weight gain
+      weight: 0.22
+    - name: cold intolerance
+      weight: 0.25
+    - name: constipation
+      weight: 0.18
+    - name: bradycardia
+      weight: 0.15
+  supportive_symptoms:
+    - name: dry skin
+      weight: 0.10
+    - name: hair loss
+      weight: 0.10
+    - name: depression
+      weight: 0.08
+    - name: muscle weakness
+      weight: 0.08
+    - name: hoarseness
+      weight: 0.08
+    - name: goiter
+      weight: 0.12
+    - name: memory problems
+      weight: 0.07
+  risk_factor_modifiers:
+    autoimmune_disease: 0.10
+    family_history_thyroid: 0.08
+  gender_modifier:
+    gender: Female
+    modifier: 0.06
+  vital_sign_criteria:
+    - condition: pulse_lt
+      threshold: 60
+      modifier: 0.08
+  negation_penalty: 0.12
+  min_diagnosis_threshold: 0.20
+
+- id: gerd
+  name: Gastro-Oesophageal Reflux Disease (GERD)
+  category: gastrointestinal
+  icd10: K21.0
+  cardinal_symptoms:
+    - name: heartburn
+      weight: 0.35
+    - name: acid reflux
+      weight: 0.35
+    - name: regurgitation
+      weight: 0.28
+    - name: chest burning
+      weight: 0.20
+  supportive_symptoms:
+    - name: dysphagia
+      weight: 0.12
+    - name: sour taste in mouth
+      weight: 0.12
+    - name: chronic cough
+      weight: 0.08
+    - name: hoarseness
+      weight: 0.06
+    - name: epigastric pain
+      weight: 0.10
+  risk_factor_modifiers:
+    obesity: 0.10
+    smoking: 0.07
+    hiatal_hernia: 0.12
+    alcohol_use: 0.06
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: peptic_ulcer
+  name: Peptic Ulcer Disease
+  category: gastrointestinal
+  icd10: K27.9
+  cardinal_symptoms:
+    - name: epigastric pain
+      weight: 0.35
+    - name: burning stomach pain
+      weight: 0.30
+    - name: pain relieved by food
+      weight: 0.20
+    - name: pain worsened by food
+      weight: 0.15
+    - name: nausea
+      weight: 0.12
+  supportive_symptoms:
+    - name: vomiting
+      weight: 0.10
+    - name: bloating
+      weight: 0.08
+    - name: loss of appetite
+      weight: 0.08
+    - name: dark stools
+      weight: 0.15
+    - name: hematemesis
+      weight: 0.15
+  risk_factor_modifiers:
+    nsaid_use: 0.15
+    smoking: 0.08
+    alcohol_use: 0.07
+    h_pylori_infection: 0.15
+    stress: 0.05
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: appendicitis
+  name: Appendicitis
+  category: gastrointestinal
+  icd10: K37
+  cardinal_symptoms:
+    - name: right iliac fossa pain
+      weight: 0.40
+    - name: periumbilical pain migrating to right
+      weight: 0.35
+    - name: rebound tenderness
+      weight: 0.30
+    - name: guarding
+      weight: 0.25
+  supportive_symptoms:
+    - name: fever
+      weight: 0.12
+    - name: nausea
+      weight: 0.10
+    - name: vomiting
+      weight: 0.10
+    - name: loss of appetite
+      weight: 0.10
+    - name: anorexia
+      weight: 0.10
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 37.5
+      modifier: 0.08
+    - condition: pulse_gt
+      threshold: 90
+      modifier: 0.05
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.25
+
+- id: cholecystitis
+  name: Acute Cholecystitis
+  category: gastrointestinal
+  icd10: K81.0
+  cardinal_symptoms:
+    - name: right upper quadrant pain
+      weight: 0.40
+    - name: right upper quadrant tenderness
+      weight: 0.35
+    - name: murphy sign
+      weight: 0.30
+    - name: biliary colic
+      weight: 0.25
+  supportive_symptoms:
+    - name: fever
+      weight: 0.12
+    - name: nausea
+      weight: 0.10
+    - name: vomiting
+      weight: 0.10
+    - name: jaundice
+      weight: 0.10
+    - name: fatty food intolerance
+      weight: 0.08
+  risk_factor_modifiers:
+    gallstones: 0.25
+    obesity: 0.10
+    diabetes: 0.07
+    rapid_weight_loss: 0.06
+  gender_modifier:
+    gender: Female
+    modifier: 0.05
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.0
+      modifier: 0.10
+  negation_penalty: 0.18
+  min_diagnosis_threshold: 0.25
+
+- id: pancreatitis
+  name: Acute Pancreatitis
+  category: gastrointestinal
+  icd10: K85.9
+  cardinal_symptoms:
+    - name: severe epigastric pain
+      weight: 0.40
+    - name: pain radiating to back
+      weight: 0.35
+    - name: band-like abdominal pain
+      weight: 0.30
+  supportive_symptoms:
+    - name: nausea
+      weight: 0.12
+    - name: vomiting
+      weight: 0.12
+    - name: fever
+      weight: 0.10
+    - name: abdominal tenderness
+      weight: 0.10
+    - name: distension
+      weight: 0.08
+  risk_factor_modifiers:
+    alcohol_use: 0.20
+    gallstones: 0.18
+    hypertriglyceridemia: 0.10
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.0
+      modifier: 0.08
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.06
+  negation_penalty: 0.18
+  min_diagnosis_threshold: 0.25
+
+- id: uti
+  name: Urinary Tract Infection
+  category: urological
+  icd10: N39.0
+  cardinal_symptoms:
+    - name: dysuria
+      weight: 0.35
+    - name: frequency of urination
+      weight: 0.30
+    - name: urgency of urination
+      weight: 0.28
+    - name: burning on urination
+      weight: 0.32
+    - name: suprapubic pain
+      weight: 0.18
+  supportive_symptoms:
+    - name: cloudy urine
+      weight: 0.12
+    - name: foul-smelling urine
+      weight: 0.12
+    - name: hematuria
+      weight: 0.10
+    - name: low-grade fever
+      weight: 0.08
+  risk_factor_modifiers:
+    female_gender: 0.10
+    diabetes: 0.08
+    urinary_catheter: 0.15
+    recent_sexual_activity: 0.06
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: pyelonephritis
+  name: Pyelonephritis
+  category: urological
+  icd10: N10
+  cardinal_symptoms:
+    - name: flank pain
+      weight: 0.38
+    - name: costovertebral angle tenderness
+      weight: 0.35
+    - name: fever
+      weight: 0.25
+    - name: dysuria
+      weight: 0.20
+    - name: frequency
+      weight: 0.15
+  supportive_symptoms:
+    - name: nausea
+      weight: 0.10
+    - name: vomiting
+      weight: 0.10
+    - name: chills
+      weight: 0.12
+    - name: rigors
+      weight: 0.10
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.0
+      modifier: 0.12
+    - condition: pulse_gt
+      threshold: 100
+      modifier: 0.06
+  risk_factor_modifiers:
+    diabetes: 0.08
+    urinary_obstruction: 0.10
+    immunosuppression: 0.08
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.25
+
+- id: dvt
+  name: Deep Vein Thrombosis
+  category: vascular
+  icd10: I82.9
+  cardinal_symptoms:
+    - name: leg swelling
+      weight: 0.30
+    - name: calf tenderness
+      weight: 0.30
+    - name: calf pain
+      weight: 0.25
+    - name: leg redness
+      weight: 0.20
+    - name: leg warmth
+      weight: 0.20
+  supportive_symptoms:
+    - name: pitting edema
+      weight: 0.12
+    - name: dilated superficial veins
+      weight: 0.10
+  risk_factor_modifiers:
+    immobilization: 0.18
+    recent_surgery: 0.15
+    malignancy: 0.12
+    oral_contraceptives: 0.10
+    obesity: 0.06
+    dvt_history: 0.18
+    long_haul_travel: 0.08
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: anxiety_disorder
+  name: Generalised Anxiety Disorder
+  category: psychiatric
+  icd10: F41.1
+  cardinal_symptoms:
+    - name: excessive worry
+      weight: 0.30
+    - name: anxiety
+      weight: 0.28
+    - name: restlessness
+      weight: 0.18
+    - name: irritability
+      weight: 0.15
+  supportive_symptoms:
+    - name: insomnia
+      weight: 0.12
+    - name: fatigue
+      weight: 0.10
+    - name: difficulty concentrating
+      weight: 0.10
+    - name: muscle tension
+      weight: 0.10
+    - name: palpitations
+      weight: 0.08
+  risk_factor_modifiers:
+    stress: 0.10
+    family_history_anxiety: 0.08
+    previous_anxiety: 0.15
+  negation_penalty: 0.10
+  min_diagnosis_threshold: 0.20
+
+- id: panic_attack
+  name: Panic Attack / Panic Disorder
+  category: psychiatric
+  icd10: F41.0
+  cardinal_symptoms:
+    - name: palpitations
+      weight: 0.28
+    - name: chest pain
+      weight: 0.22
+    - name: shortness of breath
+      weight: 0.22
+    - name: dizziness
+      weight: 0.18
+    - name: fear of dying
+      weight: 0.25
+    - name: feeling of unreality
+      weight: 0.18
+  supportive_symptoms:
+    - name: sweating
+      weight: 0.10
+    - name: trembling
+      weight: 0.10
+    - name: nausea
+      weight: 0.08
+    - name: tingling
+      weight: 0.10
+    - name: sudden onset
+      weight: 0.12
+  risk_factor_modifiers:
+    anxiety_disorder: 0.15
+    stress: 0.08
+    caffeine_use: 0.04
+  negation_penalty: 0.12
+  min_diagnosis_threshold: 0.20

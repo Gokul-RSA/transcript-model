@@ -1,0 +1,97 @@
+{
+  "session_id": "test-session-acs-001",
+  "patient_info": {
+    "patient_name": "John Smith",
+    "age": 58,
+    "gender": "Male"
+  },
+  "chief_complaint": ["chest pain"],
+  "symptoms": [
+    {
+      "entity_id": "symptom_1",
+      "name": "chest pain",
+      "severity": "severe",
+      "duration": "2 hours",
+      "status": "Active",
+      "confidence": "High",
+      "present": "True",
+      "updated_at": "1720000000.0"
+    },
+    {
+      "entity_id": "symptom_2",
+      "name": "sweating",
+      "severity": "moderate",
+      "duration": "2 hours",
+      "status": "Active",
+      "confidence": "High",
+      "present": "True",
+      "updated_at": "1720000000.0"
+    },
+    {
+      "entity_id": "symptom_3",
+      "name": "shortness of breath",
+      "severity": "moderate",
+      "duration": "2 hours",
+      "status": "Active",
+      "confidence": "High",
+      "present": "True",
+      "updated_at": "1720000000.0"
+    },
+    {
+      "entity_id": "symptom_4",
+      "name": "nausea",
+      "severity": "mild",
+      "duration": null,
+      "status": "Active",
+      "confidence": "Medium",
+      "present": "True",
+      "updated_at": "1720000000.0"
+    },
+    {
+      "entity_id": "symptom_5",
+      "name": "neck stiffness",
+      "severity": null,
+      "duration": null,
+      "status": "Negated",
+      "confidence": "High",
+      "present": "False",
+      "updated_at": "1720000000.0"
+    }
+  ],
+  "duration": "2 hours",
+  "severity": "Severe",
+  "medical_history": [
+    "Hypertension",
+    "Type 2 diabetes",
+    "Hyperlipidemia"
+  ],
+  "current_medications": [
+    "Metformin 500mg BD",
+    "Amlodipine 5mg OD",
+    "Aspirin 75mg OD",
+    "Warfarin 3mg OD"
+  ],
+  "allergies": ["Penicillin"],
+  "vital_signs": {
+    "bp": "162/98",
+    "pulse": "108",
+    "temperature": "37.2",
+    "spo2": "96",
+    "weight": "90kg",
+    "height": null
+  },
+  "diagnosis_tentative": [],
+  "treatment_plan": {
+    "medicines": [],
+    "investigations": [],
+    "advice": []
+  },
+  "follow_up": [],
+  "family_history": [
+    {
+      "relationship": "Father",
+      "condition": "Heart attack at 52"
+    }
+  ],
+  "version": 5
+}

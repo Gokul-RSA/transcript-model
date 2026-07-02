@@ -1,0 +1,243 @@
+# =========================================================
+# red_flags.yaml — Life-threatening red flag definitions
+# =========================================================
+# Each entry defines triggers for a specific dangerous
+# clinical scenario.
+#
+# Schema:
+#   id                   : unique identifier
+#   condition            : human-readable condition name
+#   severity             : CRITICAL | HIGH | MODERATE
+#   required_symptoms    : ALL must be present to trigger
+#   any_of_symptoms      : AT LEAST ONE must be present
+#   vital_sign_criteria  : list of {condition, threshold}
+#   age_criteria         : {min_age, max_age}
+#   history_criteria     : any matching history item adds support
+#   risk_factor_criteria : any matching risk factor adds support
+#   recommended_action   : string describing the immediate action
+# =========================================================
+
+- id: acs_red_flag
+  condition: Acute Coronary Syndrome (ACS)
+  severity: CRITICAL
+  required_symptoms: []
+  any_of_symptoms:
+    - chest pain
+    - chest tightness
+    - chest pressure
+    - radiating arm pain
+    - jaw pain
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 140
+  age_criteria:
+    min_age: 40
+  history_criteria:
+    - hypertension
+    - diabetes
+    - previous cardiac event
+  risk_factor_criteria:
+    - hypertension
+    - diabetes
+    - smoking
+    - family_history_cardiac
+    - previous_cardiac_event
+  recommended_action: >
+    Immediate 12-lead ECG and serial Troponin (T0/T3/T6h).
+    Activate cardiac protocol. Give aspirin 300 mg if not contraindicated.
+    IV access, oxygen if SpO2 < 94%, continuous cardiac monitoring.
+    Urgent cardiology consult.
+
+- id: stemi_red_flag
+  condition: STEMI / Acute MI
+  severity: CRITICAL
+  required_symptoms:
+    - chest pain
+  any_of_symptoms:
+    - sweating
+    - nausea
+    - shortness of breath
+    - radiating arm pain
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 140
+    - condition: pulse_gt
+      threshold: 100
+  age_criteria:
+    min_age: 35
+  risk_factor_criteria:
+    - previous_cardiac_event
+    - hypertension
+    - diabetes
+  recommended_action: >
+    CODE RED: Suspected STEMI. Activate cath-lab / PPCI pathway immediately.
+    12-lead ECG within 10 minutes. Dual antiplatelet therapy.
+    Continuous monitoring. Do NOT delay — door-to-balloon < 90 minutes.
+
+- id: stroke_red_flag
+  condition: Ischemic Stroke / TIA
+  severity: CRITICAL
+  required_symptoms: []
+  any_of_symptoms:
+    - sudden facial droop
+    - arm weakness
+    - speech difficulty
+    - slurred speech
+    - facial droop
+    - sudden severe headache
+    - sudden vision loss
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 160
+  age_criteria:
+    min_age: 40
+  history_criteria:
+    - hypertension
+    - atrial fibrillation
+    - previous stroke
+    - diabetes
+  risk_factor_criteria:
+    - hypertension
+    - atrial_fibrillation
+    - previous_stroke
+  recommended_action: >
+    FAST assessment positive: Activate stroke code immediately.
+    Non-contrast CT brain within 25 minutes.
+    Time of symptom onset MUST be documented.
+    Thrombolysis window: within 4.5 hours.
+    Urgent neurology consult.
+
+- id: sepsis_red_flag
+  condition: Sepsis / Septic Shock
+  severity: CRITICAL
+  required_symptoms: []
+  any_of_symptoms:
+    - fever
+    - altered mental status
+    - confusion
+    - rigors
+    - chills
+  vital_sign_criteria:
+    - condition: temperature_gt
+      threshold: 38.3
+    - condition: pulse_gt
+      threshold: 90
+    - condition: bp_systolic_lt
+      threshold: 90
+    - condition: spo2_lt
+      threshold: 94
+  history_criteria:
+    - diabetes
+    - immunosuppression
+    - recent surgery
+    - urinary tract infection
+    - pneumonia
+  risk_factor_criteria:
+    - immunosuppression
+    - diabetes
+    - recent_surgery
+  recommended_action: >
+    Initiate Sepsis-6 bundle immediately:
+    1. Blood cultures x2 before antibiotics.
+    2. IV antibiotics within 1 hour.
+    3. IV fluid bolus (30 ml/kg crystalloid if hypotensive).
+    4. Serial lactate measurements.
+    5. Urinary catheter + urine output monitoring.
+    6. High-flow oxygen.
+    Urgent ICU assessment if MAP < 65 mmHg despite resuscitation.
+
+- id: respiratory_failure_red_flag
+  condition: Respiratory Failure
+  severity: CRITICAL
+  required_symptoms: []
+  any_of_symptoms:
+    - shortness of breath
+    - severe breathlessness
+    - worsening dyspnea
+    - rapid breathing
+    - cyanosis
+  vital_sign_criteria:
+    - condition: spo2_lt
+      threshold: 90
+    - condition: pulse_gt
+      threshold: 120
+  history_criteria:
+    - copd
+    - asthma
+    - heart failure
+    - pneumonia
+  risk_factor_criteria:
+    - copd
+    - asthma
+    - immunosuppression
+  recommended_action: >
+    Immediate high-flow oxygen (target SpO2 94–98%, or 88–92% in COPD).
+    ABG immediately.
+    Consider NIV/BiPAP if SpO2 < 90% on O2.
+    Urgent senior review and ICU assessment.
+    CXR, ECG, BNP/NT-proBNP if cardiac cause suspected.
+
+- id: hypertensive_crisis_red_flag
+  condition: Hypertensive Emergency
+  severity: CRITICAL
+  required_symptoms: []
+  any_of_symptoms:
+    - severe headache
+    - vision changes
+    - chest pain
+    - shortness of breath
+    - confusion
+    - altered mental status
+  vital_sign_criteria:
+    - condition: bp_systolic_gt
+      threshold: 180
+    - condition: bp_diastolic_gt
+      threshold: 120
+  history_criteria:
+    - hypertension
+    - chronic kidney disease
+    - non_compliance_medications
+  risk_factor_criteria:
+    - hypertension
+    - chronic_kidney_disease
+  recommended_action: >
+    IV antihypertensive therapy (labetalol, nicardipine, or clevidipine).
+    Target: reduce MAP by 25% in first hour only.
+    DO NOT lower BP too rapidly — risk of cerebral ischaemia.
+    Urgent nephrology / cardiology consult.
+    Look for end-organ damage: ECG, renal function, urinalysis, fundoscopy.
+
+- id: anaphylaxis_red_flag
+  condition: Anaphylaxis
+  severity: CRITICAL
+  required_symptoms: []
+  any_of_symptoms:
+    - urticaria
+    - throat swelling
+    - difficulty swallowing
+    - bronchospasm
+    - wheezing
+    - hives
+    - angioedema
+    - hypotension
+  vital_sign_criteria:
+    - condition: bp_systolic_lt
+      threshold: 90
+    - condition: pulse_gt
+      threshold: 110
+  history_criteria:
+    - known allergy
+    - previous anaphylaxis
+    - recent allergen exposure
+  risk_factor_criteria:
+    - known_allergy
+    - previous_anaphylaxis
+    - asthma
+  recommended_action: >
+    IM Adrenaline (Epinephrine) 0.5 mg IM immediately (thigh) — FIRST LINE.
+    Call for help / crash team.
+    Lie patient flat with legs raised (unless breathing difficulty).
+    High-flow oxygen. IV access.
+    IV antihistamine (chlorphenamine 10 mg) and IV hydrocortisone 200 mg.
+    Monitor for biphasic reaction up to 24 hours.
+    Prescribe auto-injector for discharge.

@@ -114,6 +114,12 @@
 # =====================================================================
 
 
+# Clinical Intelligence Engine — Rule Engine dependencies
+pyyaml>=6.0.0
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+chance>=0.3.0
+
 # Core Framework & Web Server
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0

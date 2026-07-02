@@ -1,0 +1,587 @@
+# =========================================================
+# symptoms.yaml — Canonical symptom name aliases
+# =========================================================
+# Allows the matcher to normalise patient-reported symptom
+# variations to a single canonical name used in diseases.yaml.
+#
+# Schema:
+#   canonical: the name used in diseases.yaml
+#   aliases:   list of alternative expressions
+# =========================================================
+
+- canonical: chest pain
+  aliases:
+    - chest ache
+    - chest discomfort
+    - chest hurt
+    - heart pain
+    - pectoral pain
+    - retrosternal pain
+    - pain in the chest
+    - pain in my chest
+    - chest hurting
+    - chest burning
+    - precordial pain
+
+- canonical: chest tightness
+  aliases:
+    - tight chest
+    - tightness in chest
+    - chest feels tight
+    - pressure in chest
+    - heaviness in chest
+    - chest constriction
+
+- canonical: chest pressure
+  aliases:
+    - pressure on chest
+    - weight on chest
+    - heaviness on chest
+    - squeezing in chest
+
+- canonical: radiating arm pain
+  aliases:
+    - arm pain
+    - left arm pain
+    - pain in arm
+    - pain radiating to arm
+    - arm discomfort
+    - shoulder and arm pain
+
+- canonical: jaw pain
+  aliases:
+    - pain in jaw
+    - jaw ache
+    - jaw discomfort
+
+- canonical: shortness of breath
+  aliases:
+    - breathlessness
+    - dyspnea
+    - dyspnoea
+    - short of breath
+    - breathing difficulty
+    - difficulty breathing
+    - hard to breathe
+    - can't breathe
+    - cannot breathe
+    - breathing problem
+    - breathing issue
+    - out of breath
+    - winded
+    - air hunger
+
+- canonical: sudden shortness of breath
+  aliases:
+    - sudden breathlessness
+    - acute dyspnea
+    - sudden breathing difficulty
+
+- canonical: sweating
+  aliases:
+    - diaphoresis
+    - perspiration
+    - profuse sweating
+    - cold sweat
+    - sweaty
+    - clammy
+
+- canonical: nausea
+  aliases:
+    - feel like vomiting
+    - queasy
+    - sick feeling
+    - stomach sickness
+    - feeling sick
+    - sick to my stomach
+
+- canonical: palpitations
+  aliases:
+    - heart racing
+    - heart pounding
+    - heart fluttering
+    - heart beating fast
+    - fast heartbeat
+    - rapid heartbeat
+    - irregular heartbeat
+    - fluttering in chest
+
+- canonical: dizziness
+  aliases:
+    - dizzy
+    - light-headed
+    - lightheaded
+    - feeling faint
+    - vertigo
+    - spinning sensation
+    - room spinning
+    - unsteady
+    - giddy
+
+- canonical: fatigue
+  aliases:
+    - tiredness
+    - tired
+    - exhaustion
+    - exhausted
+    - weakness
+    - lack of energy
+    - no energy
+    - lethargy
+    - lethargic
+    - worn out
+    - low energy
+
+- canonical: fever
+  aliases:
+    - high temperature
+    - temperature
+    - pyrexia
+    - febrile
+    - feverish
+    - raised temperature
+    - hot to touch
+    - feeling hot
+
+- canonical: chills
+  aliases:
+    - shivering
+    - feeling cold
+    - cold chills
+    - cold rigors
+
+- canonical: rigors
+  aliases:
+    - violent shivering
+    - shaking with cold
+    - severe chills
+
+- canonical: leg swelling
+  aliases:
+    - swollen legs
+    - swollen leg
+    - swelling in legs
+    - legs swollen
+    - puffy legs
+
+- canonical: ankle swelling
+  aliases:
+    - swollen ankles
+    - ankle edema
+    - pitting edema ankles
+    - swelling in ankles
+
+- canonical: cough
+  aliases:
+    - coughing
+    - persistent cough
+    - dry cough
+    - wet cough
+
+- canonical: productive cough
+  aliases:
+    - cough with sputum
+    - cough with phlegm
+    - cough producing mucus
+    - phlegm cough
+
+- canonical: wheezing
+  aliases:
+    - wheeze
+    - whistling breath
+    - whistling sound when breathing
+    - noisy breathing
+
+- canonical: hemoptysis
+  aliases:
+    - coughing blood
+    - blood in sputum
+    - spitting blood
+    - coughing up blood
+
+- canonical: severe headache
+  aliases:
+    - bad headache
+    - terrible headache
+    - excruciating headache
+    - worst headache of my life
+    - thunderclap headache
+    - unbearable headache
+    - very bad headache
+
+- canonical: headache
+  aliases:
+    - head pain
+    - head ache
+    - pain in head
+    - head hurts
+    - head hurting
+    - head throbbing
+
+- canonical: unilateral headache
+  aliases:
+    - one-sided headache
+    - one side headache
+    - headache on one side
+    - hemicranial headache
+
+- canonical: pulsating headache
+  aliases:
+    - throbbing headache
+    - pounding headache
+    - pulsing headache
+
+- canonical: neck stiffness
+  aliases:
+    - stiff neck
+    - neck rigidity
+    - can't move neck
+    - cannot flex neck
+    - neck pain and stiffness
+
+- canonical: photophobia
+  aliases:
+    - sensitivity to light
+    - light sensitivity
+    - eyes hurt in light
+    - can't look at light
+    - aversion to light
+
+- canonical: phonophobia
+  aliases:
+    - sensitivity to sound
+    - noise sensitivity
+    - sound sensitive
+
+- canonical: aura
+  aliases:
+    - visual aura
+    - migraine aura
+    - flashing lights
+    - zigzag vision
+    - scotoma
+
+- canonical: vision changes
+  aliases:
+    - blurred vision
+    - blurry vision
+    - vision loss
+    - can't see clearly
+    - visual disturbance
+    - double vision
+    - diplopia
+    - loss of vision
+
+- canonical: facial droop
+  aliases:
+    - sudden facial droop
+    - drooping face
+    - face drooping
+    - facial weakness
+    - face weak
+    - one side of face drooping
+
+- canonical: arm weakness
+  aliases:
+    - weak arm
+    - weakness in arm
+    - arm numbness
+    - cannot raise arm
+    - one arm weak
+
+- canonical: speech difficulty
+  aliases:
+    - slurred speech
+    - difficulty speaking
+    - can't speak
+    - unable to speak
+    - speech problems
+    - trouble talking
+    - dysarthria
+    - aphasia
+    - garbled speech
+
+- canonical: polyuria
+  aliases:
+    - increased urination
+    - frequency of urination
+    - passing lots of urine
+    - urinating frequently
+    - excessive urination
+
+- canonical: polydipsia
+  aliases:
+    - increased thirst
+    - excessive thirst
+    - always thirsty
+    - very thirsty
+    - drinking a lot
+
+- canonical: polyphagia
+  aliases:
+    - increased hunger
+    - excessive hunger
+    - always hungry
+    - increased appetite
+
+- canonical: heartburn
+  aliases:
+    - burning in chest
+    - burning sensation in chest
+    - acid indigestion
+    - pyrosis
+    - burning behind breastbone
+
+- canonical: acid reflux
+  aliases:
+    - reflux
+    - stomach acid coming up
+    - acid coming up
+    - gastric reflux
+
+- canonical: regurgitation
+  aliases:
+    - food coming back up
+    - stomach contents coming up
+    - sour material coming up
+
+- canonical: epigastric pain
+  aliases:
+    - upper stomach pain
+    - pain in upper abdomen
+    - stomach pain
+    - gastric pain
+    - pit of stomach pain
+    - pain above belly button
+
+- canonical: right upper quadrant pain
+  aliases:
+    - pain upper right abdomen
+    - right side upper pain
+    - pain under right rib
+    - right hypochondrial pain
+
+- canonical: right iliac fossa pain
+  aliases:
+    - right lower abdominal pain
+    - pain lower right abdomen
+    - pain right side lower
+    - McBurney's point pain
+
+- canonical: flank pain
+  aliases:
+    - loin pain
+    - side pain
+    - kidney area pain
+    - back and side pain
+    - costovertebral pain
+
+- canonical: dysuria
+  aliases:
+    - pain on urination
+    - painful urination
+    - burning on urination
+    - burning when passing urine
+
+- canonical: hematuria
+  aliases:
+    - blood in urine
+    - urine with blood
+    - red urine
+
+- canonical: calf tenderness
+  aliases:
+    - calf pain
+    - pain in calf
+    - tender calf
+    - sore calf
+
+- canonical: urticaria
+  aliases:
+    - hives
+    - rash
+    - itchy rash
+    - welts
+    - skin rash
+
+- canonical: throat swelling
+  aliases:
+    - swollen throat
+    - throat closing
+    - throat tightening
+    - angioedema throat
+
+- canonical: dysphagia
+  aliases:
+    - difficulty swallowing
+    - hard to swallow
+    - can't swallow
+    - swallowing problem
+    - trouble swallowing
+
+- canonical: confusion
+  aliases:
+    - altered mental status
+    - disoriented
+    - not oriented
+    - confused
+    - brain fog
+    - mental confusion
+    - can't think clearly
+
+- canonical: syncope
+  aliases:
+    - fainted
+    - fainting
+    - loss of consciousness
+    - passed out
+    - blacked out
+
+- canonical: vomiting
+  aliases:
+    - vomit
+    - threw up
+    - throwing up
+    - emesis
+
+- canonical: loss of appetite
+  aliases:
+    - anorexia
+    - not hungry
+    - no appetite
+    - poor appetite
+    - decreased appetite
+
+- canonical: weight gain
+  aliases:
+    - gaining weight
+    - putting on weight
+    - weight increased
+
+- canonical: unexplained weight loss
+  aliases:
+    - weight loss
+    - losing weight
+    - losing weight without trying
+
+- canonical: constipation
+  aliases:
+    - can't pass stool
+    - difficulty passing stool
+    - not passing stool
+    - hard stool
+    - infrequent bowel movements
+
+- canonical: cold intolerance
+  aliases:
+    - can't tolerate cold
+    - always feeling cold
+    - feeling cold all the time
+    - sensitive to cold
+
+- canonical: dry skin
+  aliases:
+    - skin dryness
+    - flaky skin
+    - rough skin
+
+- canonical: hair loss
+  aliases:
+    - losing hair
+    - thinning hair
+    - alopecia
+    - hair fall
+
+- canonical: excessive worry
+  aliases:
+    - constant worry
+    - worrying all the time
+    - can't stop worrying
+    - anxious thoughts
+
+- canonical: anxiety
+  aliases:
+    - anxious
+    - feeling anxious
+    - nervous
+    - nervousness
+    - panic
+
+- canonical: insomnia
+  aliases:
+    - can't sleep
+    - difficulty sleeping
+    - poor sleep
+    - not sleeping well
+    - sleep problem
+
+- canonical: fear of dying
+  aliases:
+    - scared of dying
+    - feeling I'm going to die
+    - sense of doom
+    - impending doom
+    - fear of death
+
+- canonical: numbness
+  aliases:
+    - tingling
+    - pins and needles
+    - paresthesia
+    - numb
+    - numbness in limbs
+
+- canonical: pain radiating to back
+  aliases:
+    - back pain
+    - pain going to back
+    - radiates to back
+    - back radiation
+
+- canonical: bloating
+  aliases:
+    - abdominal bloating
+    - feeling bloated
+    - distension
+    - gassy
+    - gas
+
+- canonical: dark stools
+  aliases:
+    - black stools
+    - tarry stools
+    - melena
+    - black tarry stool
+
+- canonical: hematemesis
+  aliases:
+    - vomiting blood
+    - blood in vomit
+    - throwing up blood
+
+- canonical: rebound tenderness
+  aliases:
+    - rebound pain
+    - peritoneal signs
+    - guarding
+
+- canonical: hoarseness
+  aliases:
+    - hoarse voice
+    - voice changes
+    - husky voice
+    - voice hoarse
+
+- canonical: orthopnea
+  aliases:
+    - can't lie flat
+    - breathless when lying down
+    - need to sleep sitting up
+    - shortness of breath lying down
+
+- canonical: paroxysmal nocturnal dyspnea
+  aliases:
+    - waking up breathless
+    - wake up can't breathe
+    - nocturnal breathlessness
+    - PND
